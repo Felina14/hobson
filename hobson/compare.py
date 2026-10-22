@@ -19,7 +19,8 @@ FIELDS = ("dice", "outcome")
 def _rows(mode, seed, runs=None):
     p = RESULTS / f"referee_{mode}_{seed}.jsonl"
     rows = [json.loads(l) for l in p.open()] if p.exists() else []
-    return [r for r in rows if runs is None or r["run"] in runs]
+    # web-view games share the rows file but are free play, not the demo script
+    return [r for r in rows if (runs is None or r["run"] in runs) and not r["run"].startswith("hobson_web_")]
 
 
 def _by_run(rows):

@@ -2,3 +2,5 @@ strands-decider
 boto3
 pyyaml
 rich
+fastapi
+uvicorn
