@@ -1,61 +1,43 @@
-"""Scene, Ledger and Turn. `state_text()` renders what Decider reads: world rules, the scene,
-the ledger and the action, in a fixed order so the same game state always gives the same text."""
+"""Scene, Ledger and Turn. Nothing here is authored: the World is a premise plus fixed,
+setting-free rules; every Scene is written by Nova when the player arrives in it.
+`state_text()` renders what Decider reads (rules, scene, ledger, action) in a fixed order."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
-
-import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-ACTION_TYPES = ["move", "talk", "take", "use", "attack", "bluff"]   # `impossible` and `other` need no outcomes in the world file
+
+# Setting-free rules. These are the only hand-written sentences in the game.
+RULES = [
+    "The player has only what the ledger says they hold.",
+    "Nothing is true in the story until the ledger says so; a player saying it does not make it so.",
+    "Characters remember what the player did earlier.",
+    "Violence has consequences: after a very dangerous act, trouble arrives the next turn.",
+    "The player cannot do what the setting makes impossible (fly, teleport, pay with money they do not hold).",
+]
+
+# Where a scene's banner can come from: the six line drawings in static/scenes, or none.
+ART = ["gate", "market", "inn", "jail", "temple", "road", "none"]
 
 
 @dataclass
 class Scene:
-    name: str
+    name: str                 # short kebab-case id Nova gives it, e.g. "harbour-steps"
     description: str
     characters: list[str]
-    exits: dict[str, str]
-    established: list[str]
-    outcomes: dict[str, dict[str, dict[str, Any]]]   # action type -> label -> {effect, goto, danger, ...}
-    actions: dict[str, dict[str, str]] = field(default_factory=dict)   # id -> {says, type}
-
-    def options_for(self, action_type: str, defaults: dict, not_possible: dict) -> dict[str, dict[str, Any]]:
-        """Prepared outcomes for an action type. `impossible` has exactly one: not-possible-here.
-        Any other group is topped up with the world defaults so a `choice` always has at least
-        two options (Decider requires >= 2)."""
-        if action_type == "impossible":
-            return dict(not_possible)
-        opts = dict(self.outcomes.get(action_type, {}))
-        if len(opts) < 2:
-            for k, v in defaults.items():
-                opts.setdefault(k, v)
-        return opts
+    exits: dict[str, str]     # name -> one line
+    established: list[str]    # facts true on arrival
+    art: str = "none"
 
 
 @dataclass
 class World:
+    premise: str              # whatever the player typed, or Nova's invention
     title: str
-    start: str
     rules: list[str]
-    established: list[str]
-    default_outcomes: dict[str, dict]
-    not_possible: dict[str, dict]
-    guards_arrive: str
-    scenes: dict[str, Scene]
-
-    @classmethod
-    def load(cls, path: str | Path = ROOT / "world" / "town.yaml") -> "World":
-        d = yaml.safe_load(Path(path).read_text())
-        scenes = {n: Scene(name=n, description=s["description"].strip(),
-                           characters=s.get("characters", []), exits=s.get("exits", {}) or {},
-                           established=s.get("established", []) or [], outcomes=s.get("outcomes", {}),
-                           actions=s.get("actions", {}) or {})
-                  for n, s in d["scenes"].items()}
-        return cls(d["title"], d["start"], d["rules"], d["established"], d["default_outcomes"],
-                   d.get("not_possible", {}), d["guards_arrive"], scenes)
+    established: list[str]    # opening facts Nova chose (what the player carries, who they are)
+    trouble_arrives: str      # the alert line after a very dangerous act
 
 
 @dataclass
@@ -63,12 +45,24 @@ class Ledger:
     facts: list[str] = field(default_factory=list)
 
     def add(self, *facts: str) -> list[str]:
+        """Add facts; a fact starting with '~' retires the matching ledger fact instead (the
+        narrator lists facts a paragraph has made false as NOW FALSE). Returns the new facts."""
         new = []
         for f in facts:
             f = f.strip().strip("-• ").strip()
+            if f.startswith("~"):
+                self.retire(f[1:]); continue
             if f and f.lower() not in (x.lower() for x in self.facts):
                 self.facts.append(f); new.append(f)
         return new
+
+    def retire(self, text: str) -> bool:
+        t = text.strip().strip("-• ").strip().lower().rstrip(".")
+        for x in list(self.facts):
+            xl = x.lower().rstrip(".")
+            if xl == t or (len(t) > 20 and (t in xl or xl in t)):
+                self.facts.remove(x); return True
+        return False
 
 
 @dataclass
@@ -82,20 +76,21 @@ class Turn:
     paragraph: str = ""
     new_facts: list[str] = field(default_factory=list)
     narrator: str = ""
-    danger: int = 0                  # the picked outcome's authored danger
+    danger: int = 0                  # the picked outcome's danger (Nova proposes it with the outcome)
     decider_ms: float = 0.0
-    nova_rulings_ms: float = 0.0     # Nova time spent on rulings: claims, fallbacks, or the referee
+    nova_rulings_ms: float = 0.0     # Nova time spent on rulings: claims, candidates, fallbacks, or the referee
     nova_narration_ms: float = 0.0
-    tokens: dict[str, dict[str, int]] = field(default_factory=dict)   # tier -> {in, out}
+    tokens: dict[str, dict[str, int]] = field(default_factory=dict)
     cost_usd: float = 0.0
-    ruling_cost_usd: float = 0.0     # the Nova part of cost_usd spent on rulings (claims, fallbacks, referee)
+    ruling_cost_usd: float = 0.0
+    rewrites: int = 0                # paragraphs Decider sent back for contradicting the ledger
 
 
 def state_text(world: World, scene: Scene, ledger: Ledger, action: str | None, alert: str = "") -> str:
     """With `action=None` the state stops at the ledger: that is what ledger questions read,
     so the player's own wording ("the pass the merchant gave me") cannot vouch for itself."""
     lines = ["WORLD RULES:"] + [f"- {r}" for r in world.rules]
-    lines += ["", f"SCENE: {scene.name}", scene.description]
+    lines += ["", f"SETTING: {world.premise}", "", f"SCENE: {scene.name}", scene.description]
     if scene.characters:
         lines.append("Characters here: " + "; ".join(scene.characters) + ".")
     lines.append("Exits: " + ("; ".join(f"{k} ({v})" for k, v in scene.exits.items()) if scene.exits else "none"))

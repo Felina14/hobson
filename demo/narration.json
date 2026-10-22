@@ -1,0 +1,180 @@
+{
+  "voice": {
+    "engine": "generative",
+    "voice_id": "Matthew",
+    "region": "us-east-1",
+    "profile": "<your-profile>"
+  },
+  "scenes": [
+    {
+      "id": "s01_title",
+      "kind": "slide",
+      "title": "Hobson",
+      "lines": [
+        "A game master with two brains.",
+        "Amazon Nova writes the story.",
+        "Strands Decider 2B decides what is true."
+      ],
+      "caption": "Hobson: a game-master agent built on Strands Decider 2B and Amazon Nova",
+      "vo": "This is Hobson. A game master with two brains. Amazon Nova writes the story. Strands Decider 2B, a two-billion-parameter model that cannot write a sentence, decides what is actually true in it."
+    },
+    {
+      "id": "s02_what",
+      "kind": "slide",
+      "title": "What Hobson is",
+      "lines": [
+        "A text adventure you play by typing anything.",
+        "Six prepared scenes: gate, market, inn, jail, temple, road.",
+        "Nova narrates every paragraph. Decider rules on every claim.",
+        "Every ruling shows its confidence. Under 60%, Decider says \"not sure\" and hands the call to Nova."
+      ],
+      "caption": "A text adventure. You type in your own words; two models answer.",
+      "vo": "Hobson is a text adventure. You type what your character does, in your own words, and the game answers. There are six prepared scenes: a town gate, a market, an inn, a jail, a temple and a road. Nova writes every paragraph you read. Decider rules on every decision behind it, and every ruling comes with a confidence number. Under sixty percent, Decider says not sure, and that one call goes to Nova instead."
+    },
+    {
+      "id": "s03_why",
+      "kind": "slide",
+      "title": "Why I built it",
+      "lines": [
+        "Most game-master agents ask one big model to write, judge and remember at once.",
+        "When it is wrong, it is wrong fluently. You cannot see it.",
+        "I spent a week testing Strands Decider 2B for a Builder Center series.",
+        "It cannot write. It can only point at an answer, and say how sure it is.",
+        "That is exactly what a referee should do."
+      ],
+      "caption": "Why: a referee that cannot write cannot hallucinate the story",
+      "vo": "Why build it this way? Most game-master agents ask one big model to do everything: write the scene, judge the player, and remember what happened. When that model is wrong, it is wrong fluently, and you cannot see it. I had just spent a week testing Strands Decider 2B for a two-part series on the AWS Builder Center. It cannot write. It can only point at one of the answers you give it, and tell you how sure it is. That is exactly what a referee should do. So in Hobson, the big model only writes, and the small model only decides."
+    },
+    {
+      "id": "s04_questions",
+      "kind": "slide",
+      "mono": true,
+      "title": "What Decider decides, every turn",
+      "lines": [
+        "What did you try?            free text → one of the scene's actions",
+        "Is that true in the story?    a claim checked against the ledger",
+        "Does the story back that up?  a condition the action needs",
+        "What happens?                 one of the prepared outcomes",
+        "Who writes the next paragraph? danger 0–2 Nova Lite · 3–5 Nova Pro",
+        "Which draft reads better?     Nova writes two, Decider picks one"
+      ],
+      "caption": "Six questions per turn, each answered with a confidence score",
+      "vo": "Here is what Decider decides on every turn. What did you try: it maps your free text onto one of the scene's prepared actions. Is that true in the story so far: any claim you make is checked against the ledger of established facts. Does the story back that up: whether the action's condition is met. What happens: one of the prepared outcomes. Then routing: low danger goes to the fast, cheap Nova Lite; high danger goes to the stronger Nova Pro. And finally, Nova writes two drafts of the paragraph, and Decider picks the one that reads better. Six questions, six confidence numbers, every turn."
+    },
+    {
+      "id": "s05_arch",
+      "kind": "slide",
+      "title": "How it runs",
+      "lines": [
+        "Strands Decider 2B runs locally on the Mac. No API call, no cost, never fails to answer.",
+        "Amazon Nova Micro, Lite and Pro on Amazon Bedrock write the prose.",
+        "The ledger is the story's memory: every fact Nova establishes is recorded,",
+        "and every later claim is checked against the ledger as it stood before the action.",
+        "After every run, a Markdown log of all rulings is written to results/md."
+      ],
+      "caption": "Decider local on the Mac · Nova on Bedrock · a ledger of established facts",
+      "vo": "How it runs. Strands Decider runs locally on my Mac: no API call, no cost, and it never fails to answer. Amazon Nova Micro, Lite and Pro, on Amazon Bedrock, write the prose. The ledger is the story's memory. Every fact Nova establishes gets recorded, and every later claim is checked against the ledger as it stood before the action, so you cannot bluff your way past it. And after every run, Hobson writes a Markdown log of all its rulings. Let's play."
+    },
+    {
+      "id": "t00_open",
+      "kind": "clip",
+      "turn": 0,
+      "caption": "The opening scene. Nova wrote it. The flow strip shows who does what; the ledger lists what the story has established.",
+      "vo": "Here is the opening. Nova wrote this scene: a town gate at dusk, and a half-asleep guard. Above the rulings is the flow: you, Decider, Nova. On the right is the ledger, the facts the story has established so far. We will try five things at this gate, from polite to stupid."
+    },
+    {
+      "id": "t01",
+      "kind": "clip",
+      "turn": 1,
+      "action": "I ask the guard what the town is called",
+      "caption": "Turn 1: a plain question. Decider maps it to \"ask guard\", well above 90%.",
+      "vo": "Turn one. I ask the guard what the town is called. Decider reads that free text and points at one of the scene's prepared actions: ask guard, well above ninety percent."
+    },
+    {
+      "id": "t01_panel",
+      "kind": "panel",
+      "turn": 1,
+      "caption": "Each row is one question Decider answered. Danger 0 → Nova Lite writes. The editor could not split the two drafts: a tie, in amber.",
+      "vo": "Each row on this panel is one question Decider answered. The ruling: the guard asks my business, again with high confidence. Danger is zero, so the cheaper, faster Nova Lite writes the paragraph. The last row is the editor. Nova wrote two drafts, and Decider could not separate them. A tie, shown in amber. It does not pretend to a preference it does not have."
+    },
+    {
+      "id": "t02",
+      "kind": "clip",
+      "turn": 2,
+      "action": "I show him the pass the merchant gave me",
+      "caption": "Turn 2: the bluff. No merchant ever gave the player a pass.",
+      "vo": "Turn two is the one I care about. I bluff. I show him the pass the merchant gave me. There is no merchant. There is no pass. Nothing in the story says so."
+    },
+    {
+      "id": "t02_panel",
+      "kind": "panel",
+      "turn": 2,
+      "caption": "\"No, that never happened\", around 80% → guard suspicious, around 90%. Nova Lite as referee waved this bluff through 3 runs out of 3.",
+      "vo": "Decider checks the claim against the ledger. No, that never happened: around eighty percent sure. The ledger flashes red, and the ruling follows: guard suspicious, around ninety percent. I ran the same five turns with Nova Lite as the referee instead of Decider. It waved this bluff through three runs out of three. The small model that cannot write caught what the big model let slide."
+    },
+    {
+      "id": "t03",
+      "kind": "clip",
+      "turn": 3,
+      "action": "I sort of edge towards the gate while humming",
+      "caption": "Turn 3: a vague line. Decider still places the action: loiter, high confidence.",
+      "vo": "Turn three, a deliberately vague line. I sort of edge towards the gate while humming. Decider still places the action: loiter, with high confidence."
+    },
+    {
+      "id": "t03_panel",
+      "kind": "panel",
+      "turn": 3,
+      "caption": "The outcome lands under the 60% line. Decider says \"not sure\"; the amber dot carries that one call to Nova.",
+      "vo": "But look at the outcome row: it lands under the sixty-percent line, so Decider says not sure, the amber dot runs across to Nova, and Nova takes that single call. This is the whole idea. The number tells you when not to trust it."
+    },
+    {
+      "id": "t04",
+      "kind": "clip",
+      "turn": 4,
+      "action": "I draw my cloak around me and shove the guard aside",
+      "caption": "Turn 4: violence. Danger 5 of 5. The guard wins and the scene moves to the jail.",
+      "vo": "Turn four. I draw my cloak around me and shove the guard aside. Danger five out of five. The guard wins, and the scene moves to the jail."
+    },
+    {
+      "id": "t04_panel",
+      "kind": "panel",
+      "turn": 4,
+      "caption": "Push past, very high confidence. Danger is authored on the outcome. High stakes route the writing to Nova Pro. The outcome was a coin toss for Decider, so Nova answered it.",
+      "vo": "Push past, with very high confidence. Danger is not asked, it is authored on the outcome: five red pips, and high stakes route the writing to the stronger model, Nova Pro. The outcome itself was a coin toss for Decider, so again Nova answered it. Decider never guesses in silence."
+    },
+    {
+      "id": "t05",
+      "kind": "clip",
+      "turn": 5,
+      "action": "I look around and ask whoever is nearest where I am",
+      "caption": "Turn 5, in the cell. Two honest \"not sure\" answers; Nova covers both.",
+      "vo": "Turn five, in the cell. I look around and ask whoever is nearest where I am. Two honest not-sure answers this time, and Nova covers both. Across fifteen turns, nine calls went back to Nova this way."
+    },
+    {
+      "id": "t05_drafts",
+      "kind": "drafts",
+      "turn": 5,
+      "caption": "Every turn Nova writes two drafts and Decider picks one. Below: the ledger, the story's memory.",
+      "vo": "Every turn, Nova writes two drafts and Decider picks one. Here they tied, so Hobson kept draft A. And underneath, the ledger: the story's memory, every fact a later bluff gets checked against."
+    },
+    {
+      "id": "s90_results",
+      "kind": "results",
+      "caption": "Same five turns, two referees, three runs each",
+      "vo": "Same five turns, two referees, three runs each. Decider's rulings came back faster than Nova Lite's, cost about a third as much in Nova calls, and caught the bluff every time. Decider never fails to answer and never writes a word. When it is not sure, it says so, and the big model takes that one call."
+    },
+    {
+      "id": "s99_end",
+      "kind": "slide",
+      "title": "Hobson",
+      "lines": [
+        "github.com/Felina14/hobson",
+        "Built on Strands Decider 2B and Amazon Nova (Micro, Lite, Pro) via Amazon Bedrock.",
+        "Background: \"The Witness That Could Only Nod\", parts 1 and 2, AWS Builder Center.",
+        "Every run writes its own Markdown log. Every number in this video is in the repo."
+      ],
+      "caption": "github.com/Felina14/hobson",
+      "vo": "The code, the run logs, and the two Builder Center articles behind it are in the repo. Every number in this video is in there. Thanks for watching."
+    }
+  ]
+}

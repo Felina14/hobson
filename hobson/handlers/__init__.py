@@ -1,4 +1,4 @@
-"""The four Hobson handlers: Dice, Ledger, Ruling, Editor. Reusable without the game:
+"""The five Hobson handlers: Dice, Ledger, Ruling, Continuity, Editor. Reusable without the game:
 
     from hobson.handlers import Ruling, load_questions
     Ruling(load_questions()).decide(state, outcomes={"a": "...", "b": "..."})
@@ -36,7 +36,7 @@ def get_decider():
 
 @dataclass
 class Decision:
-    name: str                     # dice | ledger | grounds | allowed | outcome | danger | requires | editor
+    name: str                     # dice | ledger | grounds | outcome | requires | continuity | editor
     value: Any                    # option label, bool, or score
     p: dict[str, float]           # per-option probabilities (empty when the model gives none)
     confidence: float | None      # choice/score: Decider's confidence; noul: |2p - 1|; None for Nova
@@ -119,6 +119,7 @@ from .dice import Dice            # noqa: E402
 from .ledger import Ledger        # noqa: E402
 from .ruling import Ruling        # noqa: E402
 from .editor import Editor        # noqa: E402
+from .continuity import Continuity  # noqa: E402
 
-__all__ = ["Decision", "Dice", "Ledger", "Ruling", "Editor", "ask_batch", "load_questions",
+__all__ = ["Decision", "Dice", "Ledger", "Ruling", "Continuity", "Editor", "ask_batch", "load_questions",
            "get_decider", "ChoiceQuestion", "NoulQuestion", "ScoreQuestion"]

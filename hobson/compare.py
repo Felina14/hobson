@@ -51,6 +51,12 @@ def report(seed, runs=None, script=""):
                  f"(Decider {statistics.median(dec_only):.0f} ms + Nova {statistics.median(nova_rul):.0f} ms)")
         L.append(f"  Nova cost per 100 turns: rulings ${rcost:.4f} · all calls incl. narration ${cost:.4f}")
         L.append(f"  unsure rulings re-made by Nova: {unsure}")
+        claims = [x for r in rows for x in r["rulings"] if x["name"] == "ledger"]
+        caught = sum(1 for x in claims if not x["value"])
+        cont = [x for r in rows for x in r["rulings"] if x["name"] == "continuity"]
+        fixed = sum(1 for x in cont if x.get("detail"))
+        L.append(f"  claims checked against the ledger: {len(claims)}, ruled not established: {caught}")
+        L.append(f"  continuity guard: {len(cont)} paragraphs checked, {fixed} swapped or rewritten")
         eds = [x for r in rows for x in r["rulings"] if x["name"] == "editor" and isinstance(x.get("decider_value"), dict)]
         if eds:
             v = [x["decider_value"] for x in eds]
@@ -104,6 +110,6 @@ def main(args):
     runs = set()
     for mode in ("decider", "nova"):
         for i in range(args.repeats):
-            g = play(Namespace(referee=mode, seed=args.seed, script=args.script, show_drafts=False, dice="actions"))
+            g = play(Namespace(referee=mode, seed=args.seed, script=args.script, show_drafts=False, premise=args.premise))
             runs.add(g.run)
     return report(args.seed, runs, args.script)

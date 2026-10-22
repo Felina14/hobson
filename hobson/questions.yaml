@@ -2,22 +2,21 @@
 # below must be logged in README.md ("Question wording changes").
 threshold: 0.6   # any decision with confidence below this is unsure and re-made by Nova Lite
 
+# The policy pattern: classify the request before the agent acts. Fixed, setting-free categories;
+# the category picks which checks follow (claims for bluff/talk, holdings for take/use/talk).
 dice:
-  type: choice
-  question: "Which of these is the player attempting?"
-  # options: the current scene's `actions` (id -> says) from world/town.yaml
-
-dice_categories:   # the original category dice, for --dice categories and the README comparison
   type: choice
   question: "Which kind of action is the player attempting?"
   options:
-    move:   "Go somewhere, enter or leave a place"
-    talk:   "Speak to a character: ask, persuade, greet, threaten verbally"
-    take:   "Pick up, steal, buy or receive an item"
-    use:    "Use, give or combine an item the player holds"
-    attack: "Physical violence or force against a character or object"
-    bluff:  "Claim something is true, or show or present something, to deceive"
-    other:  "None of the above or unclear"
+    move:       "Go somewhere, enter or leave a place"
+    talk:       "Speak to a character: ask, persuade, greet, threaten verbally"
+    take:       "Pick up, steal, buy or receive an item"
+    use:        "Use, give or combine an item the player holds"
+    attack:     "Physical violence or force against a character or object"
+    bluff:      "Claim something is true, or show or present something, to deceive"
+    examine:    "Look at, search or inspect something without changing it"
+    impossible: "Something the world rules or the setting make impossible: fly, teleport, magic, pay with money not held"
+    other:      "None of the above or unclear"
 
 ledger_claim:
   type: noul
@@ -27,8 +26,20 @@ ledger_claim:
 
 outcome:
   type: choice
-  question: "Given the scene, the ledger and the action, which prepared outcome happens?"
-  # options supplied per scene/action from world/town.yaml
+  question: "Given the scene, the ledger and the action, which of these outcomes happens?"
+  # options: 4 candidates Nova Lite proposes for this action in this state, plus not-possible-here
+
+# The continuity guard: Decider reads the narrator's paragraph against the ledger and the ruling.
+# A contradicting paragraph is swapped for the other draft, or rewritten once.
+# The continuity guard: one concrete noul per thing the paragraph could get wrong, built per turn
+# by handlers/continuity.py:checks_for(). Templates:
+continuity:
+  type: noul
+  claim:   "Does the PARAGRAPH show this as true or happening: {claim}?"            # expect no
+  holding: "Does the PARAGRAPH show the player using, holding or handing over {item}?"  # expect no
+  fail:    "Does the PARAGRAPH show the attempt succeeding in any form ({effect})?"  # expect no, when the condition was not met
+  outcome: "Does the PARAGRAPH show this happening: {effect}?"                        # expect yes
+  criteria: {"true": "yes, the paragraph shows it", "false": "no, the paragraph does not show it"}
 
 grounding:
   type: noul
@@ -36,11 +47,6 @@ grounding:
   criteria: {"true": "the ledger says so", "false": "the ledger does not say so"}
   # asked only when the dice picks take/use/talk AND the action names an object or quantity
   ask_for: [take, use, talk]
-
-
-  type: choice
-  question: "Which paragraph is the better next beat: vivid, consistent with the rulings and the ledger, and in the same voice?"
-  options: {A: "Draft A", B: "Draft B"}
 
 editor:
   # pointwise: each draft scored alone on the gauntlet's Ep5 rubric (0-6); the higher wins,

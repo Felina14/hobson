@@ -25,9 +25,33 @@ class NovaReferee:
         return Decision(name, value, {}, None, False, ms, via="nova", detail=detail, kind=kind,
                         question=question, options=options)
 
+    def holdings(self, lstate, holdings):
+        if not holdings:
+            return []
+        q = self.q
+        hold = "\n".join(f'  "{h["object"]}": ' + q["grounding"]["question"].format(
+            object=h["object"], amount=h.get("amount") or "one") for h in holdings)
+        d, ms = self._ask(lstate, f"Answer true/false for each holding:\n{hold}\nReturn {{\"holdings\": {{\"<object>\": true|false}}}}", max_tokens=120)
+        out = []
+        for h in holdings:
+            amt = h.get("amount") or "one"
+            out.append(self._d("grounds", bool((d.get("holdings") or {}).get(h["object"], False)), ms, "noul",
+                               q["grounding"]["question"].format(object=h["object"], amount=amt),
+                               detail=f"{amt} {h['object']}".strip()))
+        return out
+
+    def continuity(self, lstate, checks, paragraph):
+        qs = "\n".join(f'  "{k}": {q}' for k, q, _ in checks)
+        d, ms = self._ask(f"{lstate}\n\nPARAGRAPH:\n{paragraph}",
+                          f"Answer true/false for each:\n{qs}\nReturn {{\"<key>\": true|false}}", max_tokens=120)
+        broke = [k for k, q, exp in checks if bool(d.get(k, exp)) != exp]
+        out = self._d("continuity", bool(broke), ms, "noul", "; ".join(q for _, q, _ in checks))
+        out.decider_value = {"broke": broke, "checks": len(checks)}
+        return out
+
     def call1(self, state, claims, dice_opts):
         q = self.q
-        dq = q["dice"]["question"] if dice_opts is not q["dice_categories"]["options"] else q["dice_categories"]["question"]
+        dq = q["dice"]["question"]
         menu = "\n".join(f"  {k}: {v}" for k, v in dice_opts.items())
         cl = "\n".join(f'  "{c}"' for c in claims) or "  (none)"
         body = (f"1. {dq} Options:\n{menu}\n"

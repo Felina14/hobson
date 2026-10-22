@@ -33,6 +33,7 @@ LABELS = {
     "requires": "Does the story back that up?",
     "grounds":  "Do you actually have that?",
     "outcome":  "What happens?",
+    "continuity": "Does the writing keep to the facts?",
     "editor":   "Which draft reads better?",
 }
 
@@ -40,6 +41,7 @@ LABELS = {
 class StartBody(BaseModel):
     seed: int = 7
     referee: str = "decider"
+    premise: str = ""
 
 
 class TurnBody(BaseModel):
@@ -76,14 +78,19 @@ def _rows(decisions, info, effect, editor):
         what = d.detail if d.name == "grounds" else d.question.removeprefix("Does the ledger establish that ").rstrip("?")
         rows.append(base(d, LABELS[d.name], "Yes" if d.value else "No", what))
     rows.append({"key": "danger", "label": "How dangerous was that?", "answer": f"{info['danger']} of 5",
-                 "note": "set by the outcome, not asked", "confidence": None, "unsure": False, "via": "world"})
+                 "note": "comes with the outcome Nova proposed, not asked", "confidence": None, "unsure": False, "via": "world"})
     rows.append({"key": "route", "label": "Who writes the next paragraph?",
                  "answer": "Nova Pro" if info["tier"] == "pro" else "Nova Lite",
-                 "note": f"danger {info['danger']}: {'high stakes, the stronger writer' if info['tier']=='pro' else 'low stakes, the faster one'}",
+                 "note": info.get("route_why", f"danger {info['danger']}"),
                  "confidence": None, "unsure": False, "via": "world"})
+    for d in by.get("continuity", []):
+        rows.append(base(d, LABELS["continuity"], ("No, it broke the ledger" if d.value else "Yes"),
+                         d.detail or ("the paragraph Nova wrote was checked against every fact in the ledger")))
     if editor is not None:
         v = editor.decider_value if isinstance(editor.decider_value, dict) else {}
-        if v.get("tie"):
+        if editor.via == "continuity":
+            ans, note = "Draft A", editor.detail
+        elif v.get("tie"):
             ans, note = "A tie, kept draft A", f"{v['score_a']:.1f} vs {v['score_b']:.1f} out of 6"
         elif v:
             ans, note = f"Draft {editor.value}", f"{v['score_a']:.1f} vs {v['score_b']:.1f} out of 6 · swap {'agrees' if v['swap_agrees'] else 'disagrees'}"
@@ -111,11 +118,12 @@ def start(body: StartBody):
     global _game
     with _lock:
         _finish()
-        _game = Game(referee=body.referee, seed=body.seed,
+        _game = Game(referee=body.referee, seed=body.seed, premise=body.premise,
                      run_name=f"hobson_web_{body.referee}_s{body.seed}_{time.strftime('%Y%m%d-%H%M%S')}")
         opening = _game.begin()
         return {"scene": _game.scene.name, "opening": opening, "ledger": list(_game.ledger.facts),
-                "image": _scene_image(_game.scene.name)}
+                "image": _scene_image(_game.scene.art), "title": _game.world.title,
+                "premise": _game.world.premise}
 
 
 @app.post("/finish")
@@ -143,8 +151,9 @@ def turn(body: TurnBody):
         res = _game.turn(body.action, on_rulings=on_rulings, on_drafts=on_drafts)
         t = res["turn"]
         return {
-            "scene": res["scene"], "image": _scene_image(res["scene"]),
-            "rows": _rows(captured["decisions"], captured["info"], res["effect"], captured.get("editor")),
+            "scene": res["scene"], "image": _scene_image(_game.scene.art),
+            "candidates": res.get("candidates", {}),
+            "rows": _rows(res["decisions"], captured["info"], res["effect"], captured.get("editor")),
             "drafts": captured.get("drafts", {}), "picked": t.picked,
             "paragraph": t.paragraph, "opening": res["opening"], "ends": res["ends"],
             "ledger": list(_game.ledger.facts), "new_facts": t.new_facts,
@@ -153,6 +162,6 @@ def turn(body: TurnBody):
         }
 
 
-def _scene_image(name: str):
-    p = STATIC / "scenes" / f"{name}.png"
-    return f"/static/scenes/{name}.png" if p.exists() else None
+def _scene_image(art: str):
+    p = STATIC / "scenes" / f"{art}.png"
+    return f"/static/scenes/{art}.png" if art and art != "none" and p.exists() else None

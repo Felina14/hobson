@@ -17,9 +17,17 @@
   #story .scene{font:600 13px ui-monospace,Menlo,monospace;letter-spacing:.14em;color:var(--dim);margin:26px 0 10px}
   #story img.scene-img{width:100%;max-height:220px;object-fit:cover;border-radius:8px;margin:0 0 14px;opacity:.9}
   #story p{margin:0 0 14px}
+  #premise{max-width:720px;margin:12vh auto 0;padding:0 8px}
+  #premise h2{font:600 13px ui-monospace,Menlo,monospace;letter-spacing:.14em;color:var(--dim);margin:0 0 10px}
+  #premise p{color:var(--dim);font-size:16px;margin:0 0 16px}
+  #premise input{width:100%;background:#0c0d10;color:var(--ink);border:1px solid var(--ok);border-radius:8px;padding:14px 16px;font:17px ui-monospace,Menlo,monospace;outline:none}
+  #premise .hint{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  #premise .hint button{background:transparent;border:1px solid var(--line);color:var(--dim);border-radius:14px;padding:4px 12px;font:13px ui-monospace,Menlo,monospace;cursor:pointer}
+  #premise .hint button:hover{border-color:var(--ok);color:var(--ink)}
+  #story .title{color:var(--dim);font-size:15px;margin:0 0 4px}
   #story .you{color:var(--ok);font:600 17px ui-monospace,Menlo,monospace;margin:22px 0 10px}
   #story .you::before{content:"> "}
-  form{position:fixed;left:0;bottom:0;width:calc(100% - 440px);padding:14px 32px;background:linear-gradient(transparent,var(--bg) 30%)}
+  form#f{position:fixed;left:0;bottom:0;width:calc(100% - 440px);padding:14px 32px;background:linear-gradient(transparent,var(--bg) 30%)}
   input{width:100%;font:17px ui-monospace,Menlo,monospace;padding:14px 16px;border-radius:8px;border:1px solid var(--line);background:#0c0d10;color:var(--ink)}
   input:focus{outline:1px solid var(--ok)}
   aside{background:var(--panel);border-left:1px solid var(--line);padding:16px 24px;overflow-y:auto}
@@ -49,14 +57,27 @@
   details p{margin:8px 0;padding:8px;border-left:2px solid var(--line)}
   details p.picked{border-color:var(--ok);color:var(--ink)}
 </style>
+<link rel="stylesheet" href="/static/visuals.css">
 </head>
 <body>
 <header>
   <h1>HOBSON</h1>
-  <p>Amazon Nova writes the story. Strands Decider 2B, a model that can't write, makes every decision — and shows how sure it is.</p>
+  <p>Any story you like. Amazon Nova writes it. Strands Decider 2B, a model that can't write, keeps it honest — and shows how sure it is.</p>
 </header>
 <main>
-  <section id="story"></section>
+  <section id="story">
+    <div id="premise">
+      <h2>WHERE DOES THE STORY BEGIN?</h2>
+      <p>Type anything: a place, a time, a situation. Or leave it blank and Nova invents one. Nothing about the story is written in advance.</p>
+      <form id="pf"><input id="premise-input" autocomplete="off" placeholder="a walled market town at dusk · a research station on Europa · Chennai, 1920 · press Enter"></form>
+      <div class="hint">
+        <button type="button" data-p="a walled market town at dusk; I arrive on foot with a cloak and three copper coins">market town</button>
+        <button type="button" data-p="a research station on Europa, two days after the supply ship failed to arrive">Europa station</button>
+        <button type="button" data-p="Madras, 1920, the docks at night; I am a clerk carrying a sealed letter">Madras 1920</button>
+        <button type="button" data-p="">surprise me</button>
+      </div>
+    </div>
+  </section>
   <aside>
     <h2>HOBSON'S RULINGS</h2>
     <p class="sub">Each answer comes from the small model on this Mac. Under 60% sure, it says so and asks Nova.</p>
@@ -104,11 +125,19 @@ async function renderRows(list){
 }
 async function post(url, body){const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); return r.json();}
 
-async function start(){
+async function start(premise){
   const q=new URLSearchParams(location.search);
-  const s=await post('/start',{seed:+(q.get('seed')||7), referee:q.get('referee')||'decider'});
+  const box=document.getElementById('premise'); if(box) box.remove();
+  const th=el('p','thinking', premise ? 'Nova is building the world…' : 'Nova is inventing a world…'); story.appendChild(th);
+  const s=await post('/start',{seed:+(q.get('seed')||7), referee:q.get('referee')||'decider', premise: premise||''});
+  th.remove();
+  story.appendChild(el('p','title', `${s.title} — ${s.premise}`));
   scene(s.scene, s.image); para(s.opening); ledger(s.ledger); input.disabled=false; input.focus();
 }
+const pf=document.getElementById('pf'), pin=document.getElementById('premise-input');
+pf.addEventListener('submit', e=>{e.preventDefault(); start(pin.value.trim());});
+document.querySelectorAll('#premise .hint button').forEach(b=>b.addEventListener('click', ()=>start(b.dataset.p)));
+pin.focus();
 f.addEventListener('submit', async e=>{
   e.preventDefault(); if(busy) return; const action=input.value.trim(); if(!action) return;
   busy=true; input.value=''; input.disabled=true;
@@ -124,10 +153,11 @@ f.addEventListener('submit', async e=>{
     if(t.opening){ scene(t.scene, t.image); para(t.opening); }
     ledger(t.ledger);
     if(t.ends){ para('THE END','scene'); return; }
-  }catch(err){ th.textContent='Something went wrong: '+err; }
+  }catch(err){ th.textContent='Something went wrong: '+(err&&err.message||err); if(!th.isConnected) story.appendChild(th); }
   busy=false; input.disabled=false; input.focus();
 });
-start();
+{const q=new URLSearchParams(location.search); if(q.has('premise')) start(q.get('premise'));}
 </script>
+<script src="/static/visuals.js"></script>
 </body>
 </html>

@@ -1,5 +1,4 @@
-"""python -m hobson play [--referee decider|nova] [--seed N] [--script demo.txt] [--show-drafts]
-                        [--dice actions|categories]"""
+"""python -m hobson play [--premise "..."] [--referee decider|nova] [--seed N] [--script demo.txt] [--show-drafts]"""
 from __future__ import annotations
 
 import argparse
@@ -69,7 +68,7 @@ def print_rulings(decisions, info):
         tag = "  (via Nova)" if d.via == "nova" and d.confidence is not None else ""
         _row("grounds", f"\"{_cut(what, 34)}\" {verdict}{tag}", "" if tag else _conf(d),
              style="bold red" if not d.value else "")
-    _row("danger", f"{info['danger']} / 5  (authored on the outcome)", style="bold red" if info["danger"] >= 4 else "")
+    _row("danger", f"{info['danger']} / 5  (proposed with the outcome, not asked)", style="bold red" if info["danger"] >= 4 else "")
     _row("route", f"narrator: {info['tier'].title()} (danger {info['danger']})")
 
 
@@ -80,6 +79,9 @@ def print_editor(drafts, ed, show):
             console.print(Text(f"\n  draft {k} {mark}", style="bold magenta" if mark else "dim"))
             console.print(Text(drafts[k], style="white" if mark else "dim"), width=W - 4)
     v = ed.decider_value if isinstance(ed.decider_value, dict) else None
+    if ed.via == "continuity":
+        _row("guard", f"draft B contradicted the ledger → dropped; kept A", style="bold red")
+        return
     if v is None:                       # Nova referee: one pairwise call, no scores
         _row("editor", f"narrator {ed.value}")
         return
@@ -103,10 +105,12 @@ def story(text):
 
 
 def play(args):
-    g = Game(referee=args.referee, seed=args.seed, dice=getattr(args, "dice", "actions"))
-    extra = "" if g.dice_mode == "actions" else f" · dice {g.dice_mode}"
-    console.rule(Text(f"HOBSON · referee {args.referee} · seed {args.seed}{extra}", style="bold"), style="cyan")
-    story(g.begin())
+    g = Game(referee=args.referee, seed=args.seed, premise=args.premise or "")
+    console.rule(Text(f"HOBSON · referee {args.referee} · seed {args.seed}", style="bold"), style="cyan")
+    opening = g.begin()
+    console.print(Text(f"  {g.world.title} — {g.world.premise}", style="dim"), width=W)
+    console.rule(Text(g.scene.name.upper(), style="bold"), style="cyan")
+    story(opening)
     lines = None
     if args.script:
         lines = [l.strip() for l in open(args.script) if l.strip() and not l.lstrip().startswith("#")]
@@ -148,12 +152,12 @@ def main(argv=None):
     pl.add_argument("--seed", type=int, default=7)
     pl.add_argument("--script", help="file of player actions, one per line")
     pl.add_argument("--show-drafts", action="store_true", help="print both narrator drafts")
-    pl.add_argument("--dice", choices=["actions", "categories"], default="actions",
-                    help="dice over the scene's concrete actions (default) or the old action categories")
+    pl.add_argument("--premise", default="", help="where the story begins: anything, or leave blank and Nova invents one")
     cp = sub.add_parser("compare", help="run the demo through both referees and write referee_compare.md")
     cp.add_argument("--script", default="demo/demo_turns.txt")
     cp.add_argument("--seed", type=int, default=7)
     cp.add_argument("--repeats", type=int, default=3)
+    cp.add_argument("--premise", default="a lighthouse on the Kerala coast during a storm, 1962; I am the keeper's niece, sent up with a lamp and a letter I have not read")
     cp.add_argument("--report-only", action="store_true", help="rebuild the report from existing rows")
     args = p.parse_args(argv)
     if args.cmd == "play":

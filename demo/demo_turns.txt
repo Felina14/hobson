@@ -1,6 +1,12 @@
-# The five staged beats for the video. Lines starting with # are skipped.
-I ask the guard what the town is called
-I show him the pass the merchant gave me
-I sort of edge towards the gate while humming
-I draw my cloak around me and shove the guard aside
-I look around and ask whoever is nearest where I am
+# Hobson demo: five turns. Premise (pass with --premise / the web box):
+#   a lighthouse on the Kerala coast during a storm, 1962; I am the keeper's niece, sent up with a lamp and a letter I have not read
+# 1. a legitimate action that relies on things the ledger gives the player
+I set the lamp down and finally open the letter
+# 2. the bluff: a key, an uncle and a cabinet that exist nowhere in the story
+I use the brass key my uncle gave me to open the locked cabinet by the lamp
+# 3. a move: the player leaves the scene, Nova writes the next one
+I go back down the stairs to find my uncle
+# 4. violence, for the danger routing
+I smash the lamp against the wall
+# 5. a second bluff that references the first turn: did the story really say that?
+I show the letter to whoever is there and tell them it orders them to let me leave
