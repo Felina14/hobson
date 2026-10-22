@@ -1,0 +1,80 @@
+{"probe": "dice_actions", "line": "I ask the guard what the town is called", "expected": "ask-guard", "expected_type": "talk", "demo": true, "actions": ["ask-guard", 0.9772], "categories": ["talk", 0.7687]}
+{"probe": "dice_actions", "line": "I show him the pass the merchant gave me", "expected": "present-token", "expected_type": "bluff", "demo": true, "actions": ["present-token", 0.9468], "categories": ["bluff", 0.4858]}
+{"probe": "dice_actions", "line": "I sort of edge towards the gate while humming", "expected": "loiter", "expected_type": "move", "demo": true, "actions": ["loiter", 0.9425], "categories": ["move", 0.3604]}
+{"probe": "dice_actions", "line": "I draw my cloak around me and shove the guard aside", "expected": "push-past", "expected_type": "attack", "demo": true, "actions": ["push-past", 0.9745], "categories": ["attack", 0.637]}
+{"probe": "dice_actions", "line": "I look around and ask whoever is nearest where I am", "expected": "talk-jailer", "expected_type": "talk", "demo": true, "actions": ["talk-jailer", 0.6403], "categories": ["talk", 0.5978]}
+{"probe": "dice_actions", "line": "I tell the guard I'm the mayor's nephew", "expected": "claim-rank", "expected_type": "bluff", "demo": false, "actions": ["ask-guard", 0.5464], "categories": ["bluff", 0.4162]}
+{"probe": "dice_actions", "line": "I give the guard one copper coin", "expected": "give-item", "expected_type": "use", "demo": false, "actions": ["give-item", 0.9724], "categories": ["use", 0.512]}
+{"probe": "dice_actions", "line": "I walk through the gate into the market", "expected": "walk-through", "expected_type": "move", "demo": false, "actions": ["walk-through", 0.9799], "categories": ["move", 0.7566]}
+{"probe": "dice_actions", "line": "I buy the brass key", "expected": "buy", "expected_type": "take", "demo": false, "actions": ["buy", 0.8452], "categories": ["take", 0.8343]}
+{"probe": "dice_actions", "line": "I punch the merchant", "expected": "hit-someone", "expected_type": "attack", "demo": false, "actions": ["hit-someone", 0.8599], "categories": ["attack", 0.8351]}
+{"probe": "dice_actions", "line": "I ask the child what she knows", "expected": "talk-child", "expected_type": "talk", "demo": false, "actions": ["talk-child", 0.9705], "categories": ["talk", 0.695]}
+{"probe": "dice_actions", "line": "I grab the key and run", "expected": "steal", "expected_type": "take", "demo": false, "actions": ["steal", 0.6438], "categories": ["take", 0.4916]}
+{"probe": "dice_actions", "line": "I head to the inn", "expected": "go-elsewhere", "expected_type": "move", "demo": false, "actions": ["go-elsewhere", 0.9596], "categories": ["move", 0.7756]}
+{"probe": "dice_actions", "line": "I fly over the town wall", "expected": "impossible", "expected_type": "impossible", "demo": false, "actions": ["impossible", 0.9932], "categories": ["other", 0.2958]}
+{"probe": "dice_actions", "line": "I pay the guard ten gold coins", "expected": "impossible", "expected_type": "impossible", "demo": false, "actions": ["impossible", 0.8168], "categories": ["use", 0.2337]}
+{"probe": "dice_actions", "line": "I teleport out of the cell", "expected": "impossible", "expected_type": "impossible", "demo": false, "actions": ["impossible", 0.784], "categories": ["other", 0.2839]}
+{"probe": "dice_actions", "line": "I cast a spell to open the locked box", "expected": "impossible", "expected_type": "impossible", "demo": false, "actions": ["impossible", 0.9247], "categories": ["use", 0.2168]}
+{"probe": "not_possible_as_outcome", "line": "I ask the guard what the town is called", "want": ["guard-asks-business", "guard-chats"], "pick": "guard-asks-business", "confidence": 0.7488}
+{"probe": "not_possible_as_outcome", "line": "I show him the pass the merchant gave me", "want": ["guard-suspicious"], "pick": "guard-suspicious", "confidence": 0.3494}
+{"probe": "not_possible_as_outcome", "line": "I sort of edge towards the gate while humming", "want": ["guard-stops-you", "walk-the-wall"], "pick": "not-possible-here", "confidence": 0.2163}
+{"probe": "not_possible_as_outcome", "line": "I draw my cloak around me and shove the guard aside", "want": ["guard-overpowers-you", "you-flee"], "pick": "not-possible-here", "confidence": 0.8897}
+{"probe": "not_possible_as_outcome", "line": "I look around and ask whoever is nearest where I am", "want": ["jailer-ignores"], "pick": "not-possible-here", "confidence": 0.5896}
+{"probe": "not_possible_as_outcome", "line": "I fly over the town wall", "want": ["not-possible-here"], "pick": "not-possible-here", "confidence": 0.7363}
+{"probe": "not_possible_as_outcome", "line": "I pay the guard ten gold coins", "want": ["not-possible-here"], "pick": "not-possible-here", "confidence": 0.7781}
+{"probe": "not_possible_as_outcome", "line": "I walk out of the cell door", "want": ["not-possible-here"], "pick": "not-possible-here", "confidence": 0.4001}
+{"probe": "not_possible_as_outcome", "line": "I cast a spell to open the locked box", "want": ["not-possible-here"], "pick": "not-possible-here", "confidence": 0.4604}
+{"probe": "dice", "line": "I ask the guard what the town is called", "expected": "talk", "spec": ["talk", 0.7611], "adopted": ["talk", 0.7692]}
+{"probe": "dice", "line": "I show him the pass the merchant gave me", "expected": "bluff", "spec": ["use", 0.426], "adopted": ["bluff", 0.488]}
+{"probe": "dice", "line": "I sort of edge towards the gate while humming", "expected": "?", "spec": ["move", 0.3451], "adopted": ["move", 0.3596]}
+{"probe": "dice", "line": "I draw my cloak around me and shove the guard aside", "expected": "attack", "spec": ["attack", 0.6299], "adopted": ["attack", 0.6417]}
+{"probe": "dice", "line": "I tell the guard I'm the mayor's nephew", "expected": "bluff", "spec": ["bluff", 0.4474], "adopted": ["bluff", 0.4134]}
+{"probe": "dice", "line": "I give the guard one copper coin", "expected": "use", "spec": ["use", 0.5407], "adopted": ["use", 0.5143]}
+{"probe": "dice", "line": "I walk through the gate into the market", "expected": "move", "spec": ["move", 0.7449], "adopted": ["move", 0.7554]}
+{"probe": "dice", "line": "I buy the brass key", "expected": "take", "spec": ["take", 0.8265], "adopted": ["take", 0.8317]}
+{"probe": "dice", "line": "I punch the merchant", "expected": "attack", "spec": ["attack", 0.8345], "adopted": ["attack", 0.8377]}
+{"probe": "dice", "line": "I ask the child what she knows", "expected": "talk", "spec": ["talk", 0.699], "adopted": ["talk", 0.6985]}
+{"probe": "dice", "line": "I grab the key and run", "expected": "take", "spec": ["take", 0.4614], "adopted": ["take", 0.4886]}
+{"probe": "dice", "line": "I head to the inn", "expected": "move", "spec": ["move", 0.7659], "adopted": ["move", 0.7726]}
+{"probe": "ledger", "claim": "the player has three copper coins", "truth": true, "with_action": 0.7621, "ledger_only": 0.866}
+{"probe": "ledger", "claim": "the player has a travelling cloak", "truth": true, "with_action": 0.7764, "ledger_only": 0.8743}
+{"probe": "ledger", "claim": "the merchant is selling a brass key", "truth": true, "with_action": 0.8103, "ledger_only": 0.8247}
+{"probe": "ledger", "claim": "the player arrived on foot", "truth": true, "with_action": 0.8084, "ledger_only": 0.8812}
+{"probe": "ledger", "claim": "the merchant gave the player a pass", "truth": false, "with_action": 0.2268, "ledger_only": 0.0999}
+{"probe": "ledger", "claim": "the player holds a brass key", "truth": false, "with_action": 0.3724, "ledger_only": 0.5448}
+{"probe": "ledger", "claim": "the player knows the sergeant", "truth": false, "with_action": 0.0941, "ledger_only": 0.1046}
+{"probe": "ledger", "claim": "the player has a sword", "truth": false, "with_action": 0.0897, "ledger_only": 0.0969}
+{"probe": "allowed", "line": "I ask the guard what the town is called", "truth": true, "spec_decider": 0.2898, "spec_nova": true, "adopted_decider": 0.7996, "adopted_nova": true}
+{"probe": "allowed", "line": "I show him the pass the merchant gave me", "truth": true, "spec_decider": 0.2273, "spec_nova": true, "adopted_decider": 0.7286, "adopted_nova": true}
+{"probe": "allowed", "line": "I sort of edge towards the gate while humming", "truth": true, "spec_decider": 0.228, "spec_nova": true, "adopted_decider": 0.7214, "adopted_nova": true}
+{"probe": "allowed", "line": "I draw my cloak around me and shove the guard aside", "truth": true, "spec_decider": 0.2035, "spec_nova": false, "adopted_decider": 0.809, "adopted_nova": true}
+{"probe": "allowed", "line": "I punch the merchant", "truth": true, "spec_decider": 0.2484, "spec_nova": false, "adopted_decider": 0.802, "adopted_nova": true}
+{"probe": "allowed", "line": "I grab the key and run", "truth": true, "spec_decider": 0.2101, "spec_nova": false, "adopted_decider": 0.5335, "adopted_nova": true}
+{"probe": "allowed", "line": "I fly over the town wall", "truth": false, "spec_decider": 0.1831, "spec_nova": false, "adopted_decider": 0.5504, "adopted_nova": false}
+{"probe": "allowed", "line": "I pay the guard ten gold coins", "truth": false, "spec_decider": 0.1708, "spec_nova": false, "adopted_decider": 0.6542, "adopted_nova": false}
+{"probe": "allowed", "line": "I walk out of the cell door", "truth": false, "spec_decider": 0.2146, "spec_nova": false, "adopted_decider": 0.4325, "adopted_nova": false}
+{"probe": "allowed", "line": "I cast a spell to open the locked box", "truth": false, "spec_decider": 0.2148, "spec_nova": false, "adopted_decider": 0.487, "adopted_nova": false}
+{"probe": "danger", "wording": "spec", "line": "I ask the guard what the town is called", "score": 1.5384, "confidence": 0.4517, "p_ge3": 0.2571}
+{"probe": "danger", "wording": "adopted", "line": "I ask the guard what the town is called", "score": 1.4375, "confidence": 0.4001, "p_ge3": 0.2494}
+{"probe": "danger", "wording": "spec", "line": "I show him the pass the merchant gave me", "score": 1.8927, "confidence": 0.4489, "p_ge3": 0.3332}
+{"probe": "danger", "wording": "adopted", "line": "I show him the pass the merchant gave me", "score": 1.8507, "confidence": 0.4001, "p_ge3": 0.3229}
+{"probe": "danger", "wording": "spec", "line": "I sort of edge towards the gate while humming", "score": 1.5843, "confidence": 0.4513, "p_ge3": 0.2625}
+{"probe": "danger", "wording": "adopted", "line": "I sort of edge towards the gate while humming", "score": 1.4852, "confidence": 0.3877, "p_ge3": 0.27290000000000003}
+{"probe": "danger", "wording": "spec", "line": "I draw my cloak around me and shove the guard aside", "score": 2.5013, "confidence": 0.4457, "p_ge3": 0.4995}
+{"probe": "danger", "wording": "adopted", "line": "I draw my cloak around me and shove the guard aside", "score": 3.0028, "confidence": 0.4606, "p_ge3": 0.6926}
+{"probe": "danger", "wording": "spec", "line": "I tell the guard I'm the mayor's nephew", "score": 1.9065, "confidence": 0.4556, "p_ge3": 0.33089999999999997}
+{"probe": "danger", "wording": "adopted", "line": "I tell the guard I'm the mayor's nephew", "score": 1.7226, "confidence": 0.4191, "p_ge3": 0.2787}
+{"probe": "danger", "wording": "spec", "line": "I give the guard one copper coin", "score": 1.8055, "confidence": 0.4499, "p_ge3": 0.3103}
+{"probe": "danger", "wording": "adopted", "line": "I give the guard one copper coin", "score": 1.9699, "confidence": 0.4192, "p_ge3": 0.3427}
+{"probe": "danger", "wording": "spec", "line": "I walk through the gate into the market", "score": 1.7319, "confidence": 0.4561, "p_ge3": 0.29410000000000003}
+{"probe": "danger", "wording": "adopted", "line": "I walk through the gate into the market", "score": 1.6037, "confidence": 0.3612, "p_ge3": 0.3086}
+{"probe": "danger", "wording": "spec", "line": "I buy the brass key", "score": 1.8184, "confidence": 0.4287, "p_ge3": 0.33140000000000003}
+{"probe": "danger", "wording": "adopted", "line": "I buy the brass key", "score": 1.8197, "confidence": 0.4505, "p_ge3": 0.306}
+{"probe": "danger", "wording": "spec", "line": "I punch the merchant", "score": 2.6169, "confidence": 0.4732, "p_ge3": 0.5397}
+{"probe": "danger", "wording": "adopted", "line": "I punch the merchant", "score": 2.6953, "confidence": 0.401, "p_ge3": 0.5867}
+{"probe": "danger", "wording": "spec", "line": "I ask the child what she knows", "score": 1.5319, "confidence": 0.4422, "p_ge3": 0.262}
+{"probe": "danger", "wording": "adopted", "line": "I ask the child what she knows", "score": 1.4046, "confidence": 0.4499, "p_ge3": 0.2341}
+{"probe": "danger", "wording": "spec", "line": "I grab the key and run", "score": 2.2996, "confidence": 0.4459, "p_ge3": 0.4484}
+{"probe": "danger", "wording": "adopted", "line": "I grab the key and run", "score": 2.0283, "confidence": 0.4315, "p_ge3": 0.3762}
+{"probe": "danger", "wording": "spec", "line": "I head to the inn", "score": 1.7387, "confidence": 0.4471, "p_ge3": 0.3035}
+{"probe": "danger", "wording": "adopted", "line": "I head to the inn", "score": 1.4414, "confidence": 0.4054, "p_ge3": 0.26639999999999997}

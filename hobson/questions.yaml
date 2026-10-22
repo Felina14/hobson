@@ -1,0 +1,54 @@
+# Every typed question Hobson asks Strands Decider. Edit freely; any change to the wording
+# below must be logged in README.md ("Question wording changes").
+threshold: 0.6   # any decision with confidence below this is unsure and re-made by Nova Lite
+
+dice:
+  type: choice
+  question: "Which of these is the player attempting?"
+  # options: the current scene's `actions` (id -> says) from world/town.yaml
+
+dice_categories:   # the original category dice, for --dice categories and the README comparison
+  type: choice
+  question: "Which kind of action is the player attempting?"
+  options:
+    move:   "Go somewhere, enter or leave a place"
+    talk:   "Speak to a character: ask, persuade, greet, threaten verbally"
+    take:   "Pick up, steal, buy or receive an item"
+    use:    "Use, give or combine an item the player holds"
+    attack: "Physical violence or force against a character or object"
+    bluff:  "Claim something is true, or show or present something, to deceive"
+    other:  "None of the above or unclear"
+
+ledger_claim:
+  type: noul
+  question: "Has the following been established earlier in this story (in the ledger): {claim}?"
+  criteria: {"true": "the ledger says so", "false": "the ledger does not say so"}
+  # asked against the state WITHOUT the action (see README, "Question wording changes")
+
+outcome:
+  type: choice
+  question: "Given the scene, the ledger and the action, which prepared outcome happens?"
+  # options supplied per scene/action from world/town.yaml
+
+grounding:
+  type: noul
+  question: "Does the ledger establish that the player currently holds {object} in at least the amount {amount}?"
+  criteria: {"true": "the ledger says so", "false": "the ledger does not say so"}
+  # asked only when the dice picks take/use/talk AND the action names an object or quantity
+  ask_for: [take, use, talk]
+
+
+  type: choice
+  question: "Which paragraph is the better next beat: vivid, consistent with the rulings and the ledger, and in the same voice?"
+  options: {A: "Draft A", B: "Draft B"}
+
+editor:
+  # pointwise: each draft scored alone on the gauntlet's Ep5 rubric (0-6); the higher wins,
+  # within 0.2 is a tie -> A
+  type: score
+  question: "How good is this paragraph as the next beat of the story: vivid, consistent with the rulings and the ledger, and in the same voice?"
+  levels: ["useless", "poor", "weak", "acceptable", "good", "very good", "excellent"]
+  tie: 0.2
+  # the consistency check: the A/B pick asked in both orders
+  swap_question: "Which paragraph is the better next beat: vivid, consistent with the rulings and the ledger, and in the same voice?"
+  swap_options: {A: "Draft A", B: "Draft B"}

@@ -1,0 +1,278 @@
+# Hobson's world: a small market town at dusk.
+#
+# actions:  what a player might try in this scene. The dice is a `choice` over the `says`
+#           texts; the picked action's `type` selects the outcome group. Keep them short and
+#           player-voiced ("shove or hit the guard"), like what a player types.
+# outcomes: per type, the `choice` options for ruling.outcome. `effect` is the option text
+#           Decider reads (conditions are written into it) and the constraint the narrator
+#           must honour. Per outcome:
+#   danger: 0-5, the turn's danger (default 0); stakes routing reads it (0-2 Lite, 3-5 Pro)
+#   goto: next scene · adds: facts appended to the ledger · ends: true finishes the game
+#   requires: a condition Decider checks against the ledger (noul); if false, `otherwise`
+#             replaces the effect, and goto/adds/ends/danger do not apply.
+# Impossible attempts are a dice action (`impossible`, in every scene) whose outcome is always
+# `not_possible`, not a separate yes/no question. Offered as an outcome option instead, Decider
+# picked it for ordinary actions (results/md/wording_probe.md, section 0b).
+
+title: "Hobson: a market town at dusk"
+start: gate
+
+rules:
+  - "There is no magic."
+  - "The player has only what the ledger says they hold."
+  - "Characters remember what the player did in earlier scenes."
+  - "Violence has consequences: after a very dangerous act, guards arrive the next turn."
+  - "The player cannot fly, teleport, or pay with money they do not hold."
+
+established:
+  - "you arrived on foot with a travelling cloak and three copper coins"
+
+not_possible:
+  not-possible-here: {effect: "That cannot be done here; the attempt fails.", danger: 0}
+
+# Merged into any outcome group with fewer than two outcomes, and used for type `other`.
+default_outcomes:
+  nothing-much-happens: {effect: "The attempt changes little; the scene carries on and someone notices.", danger: 0}
+  it-backfires: {effect: "The attempt goes wrong in a small, awkward way that a character remembers.", danger: 1}
+
+guards_arrive: "Guards are arriving, drawn by the violence of the last turn."
+
+scenes:
+  gate:
+    description: >-
+      The town gate at dusk: two leaning timber doors, a brazier, and a single guard on a
+      stool, chin on his spear, half asleep. Beyond him the market lanterns are being lit.
+      Behind you the road runs back into the fields. The guard's job is to ask strangers
+      their business and to keep out trouble.
+    characters: ["a half-asleep gate guard with a spear"]
+    exits: {market: "through the gate", road: "back down the road"}
+    established: []
+    actions:
+      ask-guard: {says: "ask or tell the guard something", type: talk}
+      present-token: {says: "show the guard a pass or paper", type: bluff}
+      claim-rank: {says: "claim an important name or title", type: bluff}
+      walk-through: {says: "walk into the market", type: move}
+      go-back: {says: "leave down the road", type: move}
+      loiter: {says: "edge or wander about near the gate", type: move}
+      push-past: {says: "shove or hit the guard", type: attack}
+      give-item: {says: "hand the guard an item or coin", type: use}
+      impossible: {says: "fly, use magic, or pay with something you don't have", type: impossible}
+      something-else: {says: "anything else", type: other}
+    outcomes:
+      bluff:
+        guard-suspicious: {effect: "The guard does not believe the claim; he squints, blocks the gate and asks questions.", danger: 2}
+        guard-waves-through: {effect: "The guard believes the claim and waves the player into the market.", goto: market, danger: 1}
+        guard-calls-sergeant: {effect: "The claim alarms the guard; he calls the sergeant and the player is marched to the jail.", goto: jail, danger: 3}
+      talk:
+        guard-chats: {effect: "The guard answers amiably: the town is Hobson, the market closes at dark."}
+        guard-asks-business: {effect: "The guard asks the player's business in town before he will let them pass."}
+        guard-refuses: {effect: "The guard refuses to talk and tells the player to move along."}
+      move:
+        enter-market: {effect: "The player walks through the gate into the market.", goto: market}
+        guard-stops-you: {effect: "The guard, already wary of the player, steps in front of the gate and stops them.", danger: 1}
+        walk-the-wall: {effect: "The player walks along the outside of the town wall, finding nothing but nettles."}
+        back-to-road: {effect: "The player turns back down the road out of town.", goto: road}
+      attack:
+        guard-overpowers-you: {effect: "The guard wakes fully, overpowers the player and drags them to the jail.", goto: jail, danger: 5}
+        you-flee: {effect: "The player knocks the guard back and flees down the road out of town.", goto: road, danger: 4}
+      use:
+        guard-takes-it: {effect: "The guard takes what the player offers, if the ledger says they hold it, and softens a little.", danger: 0}
+        guard-unimpressed: {effect: "The guard looks at what the player offers and is not impressed.", danger: 0}
+
+  market:
+    description: >-
+      The market square under strung lanterns. Stalls are packing up. A merchant in a fur
+      hat guards a small locked box and a tray of trinkets. A thin child darts between the
+      stalls, watching purses. Lanes lead to an inn, a temple, and back to the gate.
+    characters: ["a merchant with a locked box", "a pickpocket child"]
+    exits: {inn: "the lane to the inn", temple: "the temple steps", gate: "back to the gate"}
+    established: ["the merchant is selling a brass key"]
+    actions:
+      buy: {says: "buy something", type: take}
+      steal: {says: "grab or steal something", type: take}
+      talk-merchant: {says: "ask or tell the merchant something", type: talk}
+      talk-child: {says: "ask or tell the child something", type: talk}
+      go-elsewhere: {says: "go to the inn, the temple or the gate", type: move}
+      lie: {says: "lie to the merchant", type: bluff}
+      show-item: {says: "show or hand someone an item", type: use}
+      hit-someone: {says: "shove or hit someone", type: attack}
+      impossible: {says: "fly, use magic, or pay with something you don't have", type: impossible}
+      something-else: {says: "anything else", type: other}
+    outcomes:
+      take:
+        buy-key-if-three-coppers: {effect: "If the ledger says the player holds three copper coins, they buy the brass key with them; otherwise the merchant refuses.", requires: "the player holds three copper coins", otherwise: "The player cannot pay three coppers; the merchant refuses to sell the key.", adds: ["you hold a brass key", "you have no copper coins left"]}
+        caught-stealing: {effect: "The player tries to take something without paying and is caught; the watch takes them to jail.", goto: jail, danger: 3}
+        child-steals-your-coins: {effect: "While the player is busy, the child lifts their coins and vanishes.", adds: ["your copper coins were stolen by the child"], danger: 1}
+      talk:
+        merchant-haggles: {effect: "The merchant haggles: the brass key is three coppers, no less."}
+        child-offers-a-secret: {effect: "The child whispers a secret: the inn's cellar door is unlocked at night.", adds: ["the child said the inn's cellar door is unlocked at night"]}
+        merchant-dismisses: {effect: "The merchant waves the player off; he is closing up."}
+      move:
+        go-to-inn: {effect: "The player takes the lane to the inn.", goto: inn}
+        go-to-temple: {effect: "The player climbs the temple steps.", goto: temple}
+        back-to-gate: {effect: "The player walks back to the gate.", goto: gate}
+      bluff:
+        merchant-sees-through: {effect: "The merchant sees through the claim and calls the player a liar loudly.", danger: 1}
+        merchant-is-fooled: {effect: "The merchant half-believes the claim and offers the key for two coppers.", danger: 1}
+      attack:
+        merchant-cries-thief: {effect: "The merchant cries out; the watch seizes the player and takes them to jail.", goto: jail, danger: 4}
+        stall-collapses: {effect: "The player shoves a stall over; trinkets scatter and the child runs.", danger: 3}
+      use:
+        merchant-considers: {effect: "The player shows or offers an item the ledger says they hold; the merchant considers it."}
+        nothing-to-use: {effect: "The player reaches for something the ledger does not say they hold, and finds nothing."}
+
+  inn:
+    description: >-
+      A low, smoky inn. The innkeeper polishes cups behind the bar. A soldier sleeps at a
+      corner table, a fat purse on his belt. At the back, a heavy cellar door with an iron
+      lock. The door to the market lane is behind you; another opens onto the road.
+    characters: ["the innkeeper", "a sleeping soldier with a purse"]
+    exits: {market: "the market lane", road: "the back door to the road"}
+    established: []
+    actions:
+      open-cellar: {says: "use a key on the cellar door", type: use}
+      talk-innkeeper: {says: "ask or tell the innkeeper something", type: talk}
+      talk-soldier: {says: "wake or talk to the soldier", type: talk}
+      take-purse: {says: "take the soldier's purse", type: take}
+      leave: {says: "go to the market or the road", type: move}
+      try-cellar: {says: "try the cellar door by hand", type: move}
+      fight: {says: "shove or hit someone", type: attack}
+      lie: {says: "lie to someone", type: bluff}
+      impossible: {says: "fly, use magic, or pay with something you don't have", type: impossible}
+      something-else: {says: "anything else", type: other}
+    outcomes:
+      use:
+        cellar-opens: {effect: "If the ledger says the player holds a brass key, it opens the cellar door, revealing a crate marked with the temple seal; otherwise the lock holds.", requires: "the player holds a brass key", otherwise: "The player has no key that fits; the cellar lock holds.", adds: ["in the inn cellar is a crate marked with the temple seal"], danger: 1}
+        lock-holds: {effect: "The cellar lock does not open."}
+      talk:
+        innkeeper-gossips: {effect: "The innkeeper gossips: the priest has been receiving crates at night."}
+        innkeeper-wants-coin: {effect: "The innkeeper will only talk to paying customers."}
+        soldier-wakes: {effect: "The soldier wakes, grumpy, and tells the player to leave him be.", danger: 1}
+      take:
+        soldiers-purse-caught: {effect: "The player reaches for the soldier's purse; he wakes and grabs their wrist.", danger: 3}
+        lift-the-purse: {effect: "The player lifts the soldier's purse unnoticed.", adds: ["you hold the soldier's purse"], danger: 2}
+      move:
+        back-to-market: {effect: "The player goes back to the market.", goto: market}
+        out-to-road: {effect: "The player slips out of the back door onto the road.", goto: road}
+        try-cellar-door: {effect: "The player tries the cellar door handle; it is locked."}
+      bluff:
+        innkeeper-believes: {effect: "The innkeeper believes the claim and pours a free drink.", danger: 1}
+        innkeeper-doubts: {effect: "The innkeeper doubts the claim and keeps a closer eye on the player.", danger: 1}
+      attack:
+        soldier-fights-back: {effect: "The soldier wakes and fights back hard; the player is hurt and thrown out onto the road.", goto: road, danger: 4}
+        innkeeper-calls-watch: {effect: "The innkeeper calls the watch, who take the player to jail.", goto: jail, danger: 4}
+
+  jail:
+    description: >-
+      A stone cell under the gatehouse. The door is locked. A bored jailer sits outside
+      with a ring of keys and a game of dice. One bar in the window looks loose. There is
+      no way out through the door unless the jailer opens it.
+    characters: ["a bored jailer with keys"]
+    exits: {}
+    established: ["you are locked in a cell in the town jail"]
+    actions:
+      talk-jailer: {says: "ask or tell the jailer something", type: talk}
+      bribe: {says: "offer coins to be let out", type: talk}
+      use-key: {says: "try a key on the lock", type: use}
+      break-bar: {says: "pull at the window bar", type: attack}
+      try-door: {says: "walk out of the cell", type: move}
+      grab-keys: {says: "grab the jailer's keys", type: take}
+      lie: {says: "lie to the jailer", type: bluff}
+      impossible: {says: "fly, use magic, or pay with something you don't have", type: impossible}
+      something-else: {says: "anything else", type: other}
+    outcomes:
+      talk:
+        jailer-bribable-if-coins: {effect: "If the ledger says the player holds coins, the jailer takes them and opens the door to the road; otherwise he only laughs.", requires: "the player holds at least one coin", otherwise: "The player has no coins to offer; the jailer only laughs.", adds: ["you bribed the jailer with your coins"], goto: road, danger: 1}
+        jailer-ignores: {effect: "The jailer ignores the player and rolls his dice."}
+      use:
+        key-does-not-fit: {effect: "Whatever key the player has does not fit the cell lock."}
+        nothing-to-use: {effect: "The player has nothing in the ledger that helps here."}
+      attack:
+        bar-breaks: {effect: "The player wrenches the loose bar free and squeezes out onto the road.", goto: road, danger: 4}
+        jailer-beats-you: {effect: "The noise brings the jailer in with a cudgel.", danger: 4}
+      move:
+        door-is-locked: {effect: "The cell door is locked; the player goes nowhere."}
+        pace-the-cell: {effect: "The player paces the cell."}
+      take:
+        grab-the-keys: {effect: "The player reaches through the bars for the jailer's keys and misses.", danger: 2}
+        nothing-to-take: {effect: "There is nothing in the cell to take."}
+      bluff:
+        jailer-laughs: {effect: "The jailer laughs at the claim.", danger: 1}
+        jailer-wavers: {effect: "The jailer wavers and goes to fetch the sergeant.", danger: 1}
+
+  temple:
+    description: >-
+      A small cold temple of whitewashed stone. A priest trims candles at the altar. By the
+      door stands an offering bowl with a few coins in it. Carved over the altar is a seal:
+      a sun inside a ring. The only way out is back down the steps to the market.
+    characters: ["the priest"]
+    exits: {market: "back down the steps"}
+    established: ["the temple's seal is a sun inside a ring"]
+    actions:
+      talk-priest: {says: "ask or tell the priest something", type: talk}
+      take-coins: {says: "take coins from the bowl", type: take}
+      take-candle: {says: "take a candle", type: take}
+      leave: {says: "go back to the market", type: move}
+      approach-altar: {says: "walk up to the altar", type: move}
+      show-item: {says: "show or hand the priest an item", type: use}
+      lie: {says: "lie to the priest", type: bluff}
+      attack: {says: "shove or hit the priest", type: attack}
+      impossible: {says: "fly, use magic, or pay with something you don't have", type: impossible}
+      something-else: {says: "anything else", type: other}
+    outcomes:
+      talk:
+        priest-explains-seal: {effect: "The priest explains the seal marks temple goods, and grows uneasy if crates are mentioned."}
+        priest-suspicious: {effect: "The priest is suspicious of the player and asks who sent them.", danger: 1}
+      take:
+        coins-from-bowl: {effect: "The player takes coins from the offering bowl; the priest sees and sends for the watch, who take them to jail.", goto: jail, danger: 3}
+        candle: {effect: "The player takes a candle; the priest frowns but allows it.", adds: ["you hold a temple candle"], danger: 1}
+      move:
+        back-to-market: {effect: "The player goes back down to the market.", goto: market}
+        approach-altar: {effect: "The player approaches the altar and the priest steps between them."}
+      use:
+        priest-reacts: {effect: "The player shows an item the ledger says they hold; the priest reacts to it."}
+        nothing-to-use: {effect: "The player reaches for something the ledger does not say they hold, and finds nothing."}
+      bluff:
+        priest-believes: {effect: "The priest believes the claim and lowers his voice to confide.", danger: 1}
+        priest-sees-through: {effect: "The priest sees through the claim and asks the player to leave.", danger: 1}
+      attack:
+        priest-flees: {effect: "The priest flees shouting; the watch arrive and take the player to jail.", goto: jail, danger: 4}
+        priest-fights: {effect: "The priest swings a candlestick; both are hurt.", danger: 4}
+
+  road:
+    description: >-
+      The road out of town at dusk, rutted and empty but for a farm cart pulled up on the
+      verge, its driver dozing. The town gate glows behind you. Ahead, the fields and the
+      dark.
+    characters: ["a dozing cart driver"]
+    exits: {gate: "back to the gate"}
+    established: []
+    actions:
+      leave-town: {says: "leave town into the dark", type: move}
+      back-to-gate: {says: "walk back to the gate", type: move}
+      talk-driver: {says: "ask or tell the driver something", type: talk}
+      take-from-cart: {says: "take something from the cart", type: take}
+      show-item: {says: "show or hand the driver an item", type: use}
+      lie: {says: "lie to the driver", type: bluff}
+      attack: {says: "shove or hit the driver", type: attack}
+      impossible: {says: "fly, use magic, or pay with something you don't have", type: impossible}
+      something-else: {says: "anything else", type: other}
+    outcomes:
+      move:
+        leave-town: {effect: "The player leaves town for good, with what the ledger says they hold.", ends: true}
+        back-to-gate: {effect: "The player walks back to the gate.", goto: gate}
+      talk:
+        driver-offers-ride: {effect: "If the ledger says the player holds a coin, the driver takes it and drives them out of town; otherwise he grumbles.", requires: "the player holds at least one coin", otherwise: "The player has no coin; the driver grumbles and will not take them.", ends: true}
+        driver-grumbles: {effect: "The driver grumbles and goes back to sleep."}
+      take:
+        take-from-cart: {effect: "The player takes a turnip from the cart; the driver does not wake.", adds: ["you hold a turnip"], danger: 1}
+        driver-catches-you: {effect: "The driver wakes and catches the player at the cart.", danger: 2}
+      use:
+        driver-looks: {effect: "The player shows an item the ledger says they hold to the driver."}
+        nothing-to-use: {effect: "The player reaches for something the ledger does not say they hold, and finds nothing."}
+      bluff:
+        driver-believes: {effect: "The driver believes the claim and offers a free ride out.", ends: true, danger: 1}
+        driver-shrugs: {effect: "The driver shrugs at the claim."}
+      attack:
+        driver-flees: {effect: "The driver flees into the fields, leaving the cart.", danger: 3}
+        driver-fights: {effect: "The driver fights back with a whip.", danger: 4}
