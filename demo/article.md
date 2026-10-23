@@ -201,9 +201,15 @@ class LedgerGuard(InterventionHandler):
 To put it in your own agent: write the typed question for your domain, map the tool's arguments to claims, and pass it in.
 
 ```python
+guard = LedgerGuard(
+    record=lambda: RECORD,                   # the established facts, one sentence each
+    claims={"issue_refund": lambda i: [      # what this call takes for granted
+        f"order {i['order_id']} was returned by the customer",
+        f"order {i['order_id']} was delivered",
+    ]},
+)
 agent = Agent(model=BedrockModel(model_id=NOVA_LITE),
-              tools=[lookup_order, issue_refund],
-              interventions=[LedgerGuard(record=order_record)])
+              tools=[lookup_order, issue_refund], interventions=[guard])
 ```
 
 Three details make it worth lifting rather than admiring. It's **three-way** — my first version only denied or proceeded, until a genuine "delivered" came back at 0.66 against a 0.6 threshold and I realised that isn't a confident yes; it's a case for a human, which is what `Confirm` is for. It **fails closed**, so an unreachable engine pays nobody. And it's **fast after the first call** — the first build reloaded the checkpoint per instance at 3,496 ms, and a module-level cache took that to 268 ms.
@@ -218,7 +224,7 @@ The guard refused it in **233 ms** — *"order A-4471 was returned by the custom
 
 And then the finding I'd have missed if I'd run it once.
 
-Across three runs, **the agent behaved differently each time.** Once it looked the order up first and the guard never had to fire. Twice it went straight for the money. The guard isn't an improvement on a model that was already careful — it's the thing that makes the behaviour *reliable*, because the model on its own is a coin toss. The run that made the guard look unnecessary was the first one.
+Across three runs, **the agent behaved differently each time.** Once it looked the order up first and the guard never had to fire. Twice the guard had to refuse it — and in the clearest of those, Nova had not looked the order up at all. The guard isn't an improvement on a model that was already careful — it's the thing that makes the behaviour *reliable*, because the model on its own is a coin toss. The run that made the guard look unnecessary was the first one.
 
 ---
 

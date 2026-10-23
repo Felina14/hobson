@@ -352,7 +352,8 @@ guard refused it in **233 ms** (*"order A-4471 was returned by the customer"*, n
 return is allowed in 268 ms.
 
 Across those three runs the agent behaved differently each time: once it looked the order up first
-and the guard never fired; twice it went straight for the money. **The guard is not an improvement
+and the guard never fired; twice it had to refuse, and in the clearest of those Nova had not
+looked the order up at all. **The guard is not an improvement
 on a model that was already careful — it is what makes the behaviour reliable**, because the model
 alone is a coin toss. Both behaviours are recorded in the example's docstring rather than only the
 flattering one.

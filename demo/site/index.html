@@ -109,13 +109,19 @@
     <div class="g"><i>THEN</i><span class="t">Nova looks up the order, finds no return, and asks for a receipt</span></div>
     <div class="g"><i>AND</i><span class="t">on an order that really was returned, the refund is allowed</span><em>268 ms</em></div>
   </div>
-  <p class="sub" style="margin-top:20px">Across three runs the agent behaved differently each time — once it checked first,
-     twice it went straight for the money. The guard is not an improvement on a careful model; it is what makes the
+  <p class="sub" style="margin-top:20px">Across three runs the agent behaved differently each time — once it checked first, and in the
+     clearest of the other two Nova had not looked the order up at all. The guard is not an improvement on a careful model; it is what makes the
      behaviour reliable.</p>
 
-<pre>agent = Agent(model=BedrockModel(model_id=NOVA_LITE),
-              tools=[lookup_order, issue_refund],
-              interventions=[LedgerGuard(record=order_record)])</pre>
+<pre>guard = LedgerGuard(
+    record=lambda: RECORD,                   # the established facts, one sentence each
+    claims={"issue_refund": lambda i: [      # what this call takes for granted
+        f"order {i['order_id']} was returned by the customer",
+        f"order {i['order_id']} was delivered",
+    ]},
+)
+agent = Agent(model=BedrockModel(model_id=NOVA_LITE),
+              tools=[lookup_order, issue_refund], interventions=[guard])</pre>
 
   <h2>What it is for</h2>
   <div class="rows">
