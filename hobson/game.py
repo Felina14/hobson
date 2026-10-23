@@ -97,6 +97,21 @@ class Game:
 
         # the outcome is decided on a state that also carries the claim rulings
         ostate = state + ("\n\nRULINGS SO FAR (decided against the ledger):\n" + "\n".join(claim_lines) if claim_lines else "")
+        # what Nova is told the player did: the player's words, plus what the ledger says is not so.
+        # Without this both Nova Lite (candidates) and Nova Pro (prose) keep anchoring on the words
+        # ("the brass key does not fit") even after the ruling says there is no key.
+        missing = [d.detail for d in d1 if d.name == "grounds" and not d.value and d.via == "decider"]
+        false_c = [d.detail for d in d1 if d.name == "ledger" and not d.value and d.via == "decider"]
+        if missing or false_c:
+            note = "(NOTE from the referee: "
+            if missing: note += "the player does NOT have: " + "; ".join(missing) + ". "
+            if false_c: note += "Not established, so false: " + "; ".join(false_c) + ". "
+            note += "The player only believes or pretends these; nothing of them exists in the story.)"
+            action_for_nova = f"{action}\n{note}"
+            state = state_text(self.world, scene, self.ledger, action_for_nova, self.alert)
+            ostate = state + "\n\nRULINGS SO FAR (decided against the ledger):\n" + "\n".join(claim_lines)
+        else:
+            action_for_nova = action
         # call C: Nova proposes the candidates, Decider picks (impossible needs no proposal)
         if atype == "impossible":
             prepared = {"not-possible-here": {"effect": "That cannot be done here or with what the player holds; the attempt fails.", "danger": 0, "goto": None, "requires": None, "adds": []}}
@@ -144,7 +159,7 @@ class Game:
                                    "route_why": route_why, "contested": contested})
 
         # two drafts; the continuity guard reads each against the ledger; the editor picks
-        drafts = n.drafts(tier, self.world, scene, self.ledger, action, brief)
+        drafts = n.drafts(tier, self.world, scene, self.ledger, action_for_nova, brief)
         if self.rng.random() < 0.5:
             drafts.reverse()
         context = state + "\n\nRULINGS:\n" + brief
@@ -158,7 +173,7 @@ class Game:
         problem = self._problem(decisions, met, o)
         while len(bad) == 2 and rewrites < 2:
             rewrites += 1
-            fixed = n.drafts("pro", self.world, scene, self.ledger, action, brief, n_drafts=1,
+            fixed = n.drafts("pro", self.world, scene, self.ledger, action_for_nova, brief, n_drafts=1,
                              problem=f"both drafts broke the ledger. {problem}")[0]
             drafts = [fixed, drafts[0]]
             c = self._check(lstate, clist, fixed[0], "A"); checks = [c, checks[0]]
@@ -171,6 +186,7 @@ class Game:
                           detail="the other draft contradicted the ledger", kind="choice",
                           question=self.q["editor"]["question"], options={"A": "Draft A", "B": "Draft B"})
             drafts = [(pa, fa), (pb, fb)]
+            checks = [checks[keep], checks[bad[0]]]          # keep the checks aligned with the drafts
         else:
             (pa, fa), (pb, fb) = drafts
             if self.mode == "decider":

@@ -198,10 +198,14 @@ class Narrator:
                     danger = max(0, min(5, int(o.get("danger", 0))))
                 except Exception:
                     danger = 0
+                def clean(v):
+                    v = str(v).strip() if v is not None else ""
+                    return None if v.lower() in ("", "null", "none", "n/a", "nil", "false", "no") else v
+                goto = clean(o.get("moves_to"))
                 out[label] = {"effect": str(o["effect"]).strip(), "danger": danger,
-                              "goto": (str(o["moves_to"]).strip().lower().replace(" ", "-")[:40] if o.get("moves_to") else None),
-                              "requires": (str(o["requires"]).strip() if o.get("requires") else None),
-                              "adds": [str(a) for a in (o.get("adds") or [])][:2]}
+                              "goto": (re.sub(r"[^a-z0-9-]", "-", goto.lower()).strip("-")[:40] or None) if goto else None,
+                              "requires": clean(o.get("requires")),
+                              "adds": [str(a) for a in (o.get("adds") or []) if clean(a)][:2]}
                 if len(out) == 4:
                     break
         except Exception:

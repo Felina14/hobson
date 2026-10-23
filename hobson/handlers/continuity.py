@@ -15,23 +15,39 @@ True when the paragraph broke the rules; `p` holds the per-check answers. Reusab
 """
 from __future__ import annotations
 
+import re
+
 from . import Decision, Handler, NoulQuestion, _noul
 
 CRITERIA = {"true": "yes, the paragraph shows it", "false": "no, the paragraph does not show it"}
 
 
+def _plain(claim: str) -> str:
+    """'the player claims to hold a brass key' -> 'the player holds a brass key'"""
+    c = claim.strip().rstrip(".")
+    c = re.sub(r"^(the player|they|you)\s+claims?\s+(to\s+)?", "the player ", c, flags=re.I)
+    c = re.sub(r"^the player (have|hold|know|own|carry|possess)\b", lambda m: "the player " + m.group(1) + "s", c)
+    return c
+
+
 def checks_for(decisions, met: bool, outcome: dict) -> list[tuple[str, str, bool]]:
-    """Build the check list from a turn's decisions. (key, question, expected answer)."""
-    out = []
-    for i, d in enumerate(d for d in decisions if d.name == "ledger" and not d.value):
-        out.append((f"claim_{i}", f"Does the PARAGRAPH show this as true or happening: {d.detail}?", False))
-    for i, d in enumerate(d for d in decisions if d.name == "grounds" and not d.value):
-        out.append((f"hold_{i}", f"Does the PARAGRAPH show the player using, holding or handing over {d.detail}?", False))
-    if not met:
-        out.append(("fail", f"Does the PARAGRAPH show the attempt succeeding in any form ({outcome.get('effect')})?", False))
-    else:
-        out.append(("outcome", f"Does the PARAGRAPH show this happening: {outcome.get('effect')}?", True))
-    return out[:6]
+    """Build the check list from a turn's decisions: (key, question, expected answer).
+
+    Contested turn (a claim or holding Decider was sure is false, or the condition unmet): one
+    question, "does the paragraph show the attempt succeeding in any form?", expected no. Asking
+    per claim ("does it show the player holding the key?") was tried first and failed on correct
+    prose: a paragraph that says "the key your uncle supposedly gave you" mentions the key, and
+    both Decider and Nova Lite read a mention as a showing. Uncontested turn: did the ruled
+    outcome happen, expected yes."""
+    sure_false = [d for d in decisions if d.name in ("ledger", "grounds") and not d.value and d.via == "decider"]
+    contested = (not met) or bool(sure_false)
+    if contested:
+        out = [("fail", "Does the PARAGRAPH show the player's attempt succeeding in any form?", False)]
+        for i, d in enumerate(x for x in sure_false if x.name == "grounds"):
+            out.append((f"hold_{i}", f"Does the PARAGRAPH show {d.detail} physically present and being used by the player "
+                                    f"(turning in a lock, handed over, lit)? Reaching for it and finding nothing does not count.", False))
+        return out[:4]
+    return [("outcome", f"Does the PARAGRAPH show this happening: {outcome.get('effect')}?", True)]
 
 
 class Continuity(Handler):
