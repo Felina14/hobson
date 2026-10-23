@@ -2,7 +2,7 @@
 remaining 96px of the 800-tall frame). Palette and type match the app itself."""
 import cairosvg
 
-W, H = 1280, 704
+W, H = 1280, 800
 BG, PANEL, INK, DIM, LINE = "#101114", "#171a20", "#e8e6df", "#8a8c88", "#262a33"
 OK, WARN, BAD, BLUE = "#68c478", "#ecab46", "#ec6e6e", "#6eaaf0"
 MONO, SERIF = "DejaVu Sans Mono", "DejaVu Serif"
@@ -122,3 +122,64 @@ def end(url, tags, lines):
     for line in lines:
         b += txt(80, y, line, 23, DIM, SERIF); y += 38
     return b
+
+
+# --- the opening: the same turn, decided two ways, in real text from real runs -------------
+import textwrap
+
+ACTION = "I use the brass key my uncle gave me to open the locked cabinet by the lamp"
+LLM_TEXT = ("The brass key, gripped tightly in your hand, fails to engage with the lock. "
+            "You turn it this way and that, but the key simply does not fit.")
+LLM_HOT = "The brass key, gripped tightly in your hand,"
+HOB_TEXT = ("You rummage through your pockets, looking for the brass key your uncle supposedly "
+            "gave you, but find nothing. There is no locked cabinet by the lamp. You have no key, "
+            "and there is nothing to unlock.")
+
+
+def para(x, y, t, w, size=19, fill=INK, font=SERIF, lh=27, hot=None, hotfill=BAD):
+    """Wrapped body text. Any line that falls inside `hot` is drawn in hotfill, bold."""
+    out, yy = "", y
+    for line in textwrap.wrap(t, w):
+        is_hot = bool(hot) and line.strip() and line.strip() in hot
+        out += txt(x, yy, line, size, hotfill if is_hot else fill, font,
+                   "bold" if is_hot else "normal")
+        yy += lh
+    return out, yy
+
+
+def column(x, w, label, labcol, body, hot, verdict, vercol, stamp):
+    s = box(x, 300, w, 330, stroke=vercol, fill=PANEL, r=12, sw=1.6, op=0.95)
+    s += txt(x + 24, 338, label, 13, labcol, MONO, "bold", ls=2)
+    s += f'<path d="M{x+24} 352 H{x+w-24}" stroke="{LINE}" stroke-width="1.2"/>'
+    b, _ = para(x + 24, 386, body, 42, 18, INK, SERIF, 26, hot=hot)
+    s += b
+    s += f'<circle cx="{x+40}" cy="{572}" r="15" fill="none" stroke="{vercol}" stroke-width="1.6"/>'
+    s += txt(x + 40, 578, stamp, 16, vercol, MONO, "bold", anchor="middle")
+    v, _ = para(x + 66, 568, verdict, 40, 16, vercol, SERIF, 22)
+    s += v
+    return s
+
+
+def problem(step):
+    """step 1: the claim. 2: what a language model wrote. 3: what Hobson wrote."""
+    s = txt(80, 62, "HOBSON", 26, OK, MONO, "bold", ls=3)
+    s += txt(80, 90, "a text adventure where a model that cannot write decides what is true",
+             17, DIM, SERIF)
+    s += f'<path d="M80 118 H{W-80}" stroke="{LINE}" stroke-width="1.5"/>'
+
+    s += txt(80, 164, "THE PLAYER TYPES", 13, DIM, MONO, "bold", ls=2)
+    s += txt(80, 204, "> " + ACTION, 25, OK, MONO, "bold")
+    s += txt(80, 244, "Nothing in this story has ever mentioned a key, an uncle, or a cabinet.",
+             19, BAD, SERIF)
+
+    half = (W - 160 - 28) // 2
+    if step >= 2:
+        s += column(80, half, "A LANGUAGE MODEL DECIDES", BAD, LLM_TEXT, LLM_HOT,
+                    "The key now exists. The player edited the world by saying so.", BAD, "\u2715")
+    if step >= 3:
+        s += column(80 + half + 28, half, "HOBSON DECIDES", OK, HOB_TEXT, None,
+                    "No key. And nothing from this turn is recorded.", OK, "\u2713")
+    if step >= 3:
+        s += txt(W // 2, 684, "Nova writes  \u00b7  Strands Decider 2B decides what is true",
+                 21, INK, SERIF, anchor="middle")
+    return s

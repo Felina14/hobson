@@ -7,7 +7,7 @@
  "scenes": [
   {
    "id": "s01_title",
-   "kind": "slide",
+   "kind": "build",
    "title": "Hobson",
    "lines": [
     "A text adventure with two brains.",
@@ -16,14 +16,18 @@
     "Nothing about the story is written in advance: you type where it begins, and what you do.",
     "An LLM game master believes whatever the player asserts. Hobson gives the believing to a model that cannot write."
    ],
-   "vo": "Tell a language model you have a brass key your uncle gave you, and the key exists. The model writing the world is the one deciding what is true in it. That is every agent that acts on what a user asserts. Hobson splits the job. Nova writes. Strands Decider 2B, which cannot write a sentence, decides what is true. It cannot be talked into anything, because it cannot talk.",
-   "slide": "title"
+   "vo": "Here is the problem, in one turn. The player claims a brass key, an uncle, and a locked cabinet. Nothing in this story has ever mentioned any of them. Hand that turn to a language model, and this is what it actually wrote: the brass key, gripped tightly in your hand. The key now exists. The player edited the world by saying so. Hobson gives the deciding to Strands Decider 2B, a model that cannot write a sentence. No key. And nothing from this turn is recorded.",
+   "weights": [
+    0.3,
+    0.34,
+    0.36
+   ]
   },
   {
    "id": "s02_agenda",
    "kind": "slide",
    "slide": "agenda",
-   "vo": "Four things: a world nobody wrote, an honest turn, a bluff, the measurements. Then where this goes outside a game."
+   "vo": "Four things: a world nobody wrote, an honest turn, a bluff, and the measurements."
   },
   {
    "id": "s04_questions",
@@ -41,7 +45,7 @@
     "Every answer carries a confidence.",
     "Under 60%, Decider says \"not sure\" and Nova takes that call."
    ],
-   "vo": "This is what a decision model is for. Not prose: closed questions with a confidence on each. Five a turn. What did you try. Is each claim true so far. Do you hold what you named. Which outcome follows. And does Nova's paragraph keep to the facts. The record is the story's only memory, and under sixty percent sure, Decider says so and hands that call to Nova.",
+   "vo": "So what is the small model actually for? Closed questions with a confidence on each. Five a turn: what did you try, is each claim true so far, do you hold what you named, which outcome follows, and does Nova's paragraph keep to the facts. Under sixty percent sure, Decider says so and hands that call to Nova.",
    "slide": "questions"
   },
   {

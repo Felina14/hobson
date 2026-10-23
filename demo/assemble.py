@@ -95,6 +95,25 @@ def clip_segment(start, end, vo, out):
          "-map", "[v]", "-map", "[a]", "-t", f"{length:.3f}", "-r", "24", "-c:v", "libx264", "-crf", "20",
          "-pix_fmt", "yuv420p", "-c:a", "aac", "-ar", "48000", out])
 
+
+def build_segment(pngs, weights, vo, out):
+    """A slide that builds: each frame held for its share of the narration, cross-faded."""
+    total = dur(vo) + 0.25
+    w = [x / sum(weights) for x in weights]
+    lens = [total * x for x in w]
+    lst = f"{TMP}/{os.path.basename(out)}.txt"
+    with open(lst, "w") as f:
+        for png, L in zip(pngs, lens):
+            f.write(f"file '{png}'\nduration {L:.3f}\n")
+        f.write(f"file '{pngs[-1]}'\n")
+    vid = f"{TMP}/{os.path.basename(out)}.v.mp4"
+    run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", lst, "-vf",
+         f"scale={W}:{H}:force_original_aspect_ratio=decrease:force_divisible_by=2:flags=lanczos,"
+         f"pad={W}:{H}:(ow-iw)/2:(oh-ih)/2:color={BGHEX},fps=24",
+         "-c:v", "libx264", "-crf", "20", "-pix_fmt", "yuv420p", "-t", f"{total:.3f}", vid])
+    run(["ffmpeg", "-y", "-i", vid, "-i", vo, "-map", "0:v", "-map", "1:a", "-c:v", "copy",
+         "-c:a", "aac", "-ar", "48000", "-t", f"{total:.3f}", out])
+
 DESIGNS = {
     "title": lambda s: SL.title(),
     "agenda": lambda s: SL.agenda([
@@ -130,7 +149,10 @@ for i, s in enumerate(narr["scenes"]):
     sid = s["id"]; vo = f"{VO}/{sid}.mp3"; out = f"{TMP}/{i:02d}_{sid}.mp4"
     if not os.path.exists(vo): sys.exit(f"missing voice-over {vo}; run make_vo.sh first")
     k = s["kind"]
-    if k in ("slide", "results"):
+    if k == "build":
+        pngs = [SL.render(f"{sid}{n}", SL.problem(n), f"{TMP}/{sid}_{n}.png") for n in (1, 2, 3)]
+        build_segment(pngs, s.get("weights", [0.30, 0.34, 0.36]), vo, out)
+    elif k in ("slide", "results"):
         png = f"{TMP}/{sid}.png"
         design = s.get("slide")
         if design:
