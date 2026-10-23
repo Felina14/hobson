@@ -230,3 +230,32 @@ def what(step):
         s += txt(bx + 24, by + bh - 24, "The story's only memory. Nothing else counts as true.",
                  18, DIM, SERIF)
     return s
+
+
+def pattern():
+    """The reusable guard on a Strands agent that is not a game. Numbers from a real run of
+    patterns/example_refund_desk.py."""
+    out = heading("THE SAME GUARD, OUTSIDE THE GAME",
+                  "patterns/ledger_guard.py \u00b7 a Strands InterventionHandler, 10 lines of wiring")
+    y = 214
+    rows = [
+        (DIM,  "CUSTOMER", "\u201cI returned order A-4471. Refund me 2,400.\u201d", None),
+        (BAD,  "NOVA", "calls issue_refund immediately, without looking the order up", None),
+        (DIM,  "", "\u201cthe user has provided the order ID and the amount, so I can proceed\u201d", None),
+        (BAD,  "GUARD", "\u201corder A-4471 was returned by the customer\u201d  \u2014  NOT established",
+         "78%  \u00b7  233 ms"),
+        (OK,   "THEN", "Nova looks up the order, finds no return, asks for a receipt", None),
+        (OK,   "AND", "on an order that really was returned, the refund is allowed", "268 ms"),
+    ]
+    for col, tag, text, right in rows:
+        if tag:
+            out += f'<path d="M80 {y-16} V {y+6}" stroke="{col}" stroke-width="3"/>'
+            out += txt(96, y, tag, 12, col, MONO, "bold", ls=2)
+        out += txt(188, y, text, 20, INK if col is not DIM else DIM, SERIF)
+        if right:
+            out += txt(W - 80, y, right, 17, col, MONO, "bold", anchor="end")
+        y += 62
+    out += f'<path d="M80 {y+4} H{W-80}" stroke="{LINE}" stroke-width="1.2"/>'
+    out += txt(80, y + 46, "github.com/Felina14/hobson", 21, BLUE, MONO)
+    out += txt(W - 80, y + 46, "#strands-decider-2b   #guardrails", 19, WARN, MONO, anchor="end")
+    return out

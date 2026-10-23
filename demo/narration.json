@@ -14,7 +14,7 @@
     0.52,
     0.48
    ],
-   "vo": "Hobson is a text adventure that nobody wrote. You type where the story begins, and Amazon Nova invents the place, the people and the facts it starts with. Then you type what you do, in your own words, and Nova writes what happens next. Every fact the story has established lives in one list: the record."
+   "vo": "Hobson is a text adventure that nobody wrote. You type where the story begins, and Amazon Nova invents the place and the facts it starts with. Then you type what you do, and Nova writes what happens next. Every established fact lives in one list: the record."
   },
   {
    "id": "s01_title",
@@ -84,7 +84,7 @@
   {
    "id": "s90_results",
    "kind": "results",
-   "vo": "Same script, two referees, three runs each. Decider refused eleven of twenty-two player claims; Nova Lite, eight of twenty-four. The bluff: Decider refused it three times out of three, Nova Lite believed the key in two. On open picks Decider is often not sure, and says so. On yes or no against a record, it is the one you want.",
+   "vo": "Same script, two referees, three runs each. Decider refused eleven of twenty-two player claims; Nova Lite, eight of twenty-four. The bluff: Decider refused it three times out of three, Nova Lite believed the key in two.",
    "rows": [
     [
      "",
@@ -123,13 +123,9 @@
    "id": "s99_end",
    "kind": "slide",
    "title": "Hobson",
-   "lines": [
-    "github.com/Felina14/hobson",
-    "Strands Decider 2B on the Mac \u00b7 Amazon Nova Lite and Pro on Amazon Bedrock",
-    "Decision pattern: #guardrails. The ledger guard is one typed question and ten lines of wiring, reusable anywhere a generator is allowed to act on what a user asserts."
-   ],
-   "vo": "And this is not really about games. Any agent acting on what a user tells it has the same problem: refunds, claims, access, support. So the guard also ships on its own, as a Strands intervention handler, with a refund desk that refuses an order never delivered and asks a human when unsure.",
-   "slide": "end"
+   "lines": [],
+   "vo": "And the guard is not part of the game. It ships on its own, as a Strands intervention handler, on a refund desk. A customer says they returned an order. Nova calls issue refund straight away, without looking the order up. The guard refuses in two hundred and thirty three milliseconds: not established, seventy eight percent. Only then does Nova check, find no return, and ask for a receipt. One typed question. The pattern is guardrails.",
+   "slide": "pattern"
   }
  ],
  "premise": "a lighthouse on the Kerala coast during a storm, 1962; I am the keeper's niece, sent up with a lamp and a letter I have not read"

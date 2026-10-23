@@ -131,6 +131,7 @@ DESIGNS = {
     ]),
     "results": lambda s: SL.results(("Decider 2B referee", "Nova Lite referee"),
         [(r[0], r[1], r[2], i < 2) for i, r in enumerate(s["rows"][1:])], s.get("lines", [])),
+    "pattern": lambda s: SL.pattern(),
     "end": lambda s: SL.end("github.com/Felina14/hobson", ["#strands-decider-2b", "#guardrails"],
         ["Strands Decider 2B runs locally. Amazon Nova Lite and Pro run on Amazon Bedrock.",
          "The ledger guard also ships as a standalone Strands InterventionHandler,",
