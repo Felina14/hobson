@@ -13,6 +13,10 @@ class H(BaseHTTPRequestHandler):
     def do_GET(self):
         p = self.path.split("?")[0]
         if p == "/": return self._send(200, open(f"{STATIC}/index.html", "rb").read(), "text/html; charset=utf-8")
+        if p.startswith("/scene/"):
+            f = f"{STATIC}/scene/{p.rsplit('/', 1)[-1]}"
+            if os.path.exists(f):
+                return self._send(200, open(f, "rb").read(), "image/svg+xml")
         if p.startswith("/static/"):
             f = f"{STATIC}/{p[len('/static/'):]}"
             if os.path.exists(f):

@@ -17,6 +17,9 @@
   #story>*{max-width:680px;margin-left:auto;margin-right:auto}
   #story .turn{max-width:680px;margin:0 auto;border-top:1px solid var(--line);padding-top:18px;margin-top:22px}
   #story .scene{font:600 13px ui-monospace,Menlo,monospace;letter-spacing:.14em;color:var(--dim);margin:26px 0 10px}
+  #story img.scene-img{display:block;width:100%;border-radius:10px;margin:0 0 16px;border:1px solid var(--line);
+    opacity:0;animation:scene-in .8s ease forwards}
+  @keyframes scene-in{to{opacity:1}}
   #story p{margin:0 0 14px}
   #premise{max-width:720px;margin:12vh auto 0;padding:0 8px}
   #premise h2{font:600 13px ui-monospace,Menlo,monospace;letter-spacing:.14em;color:var(--dim);margin:0 0 10px}
@@ -108,7 +111,12 @@ const story=document.getElementById('story'), rows=document.getElementById('rows
 let busy=false, known=new Set();
 
 function el(tag, cls, text){const e=document.createElement(tag); if(cls) e.className=cls; if(text!=null) e.textContent=text; return e;}
-function scene(name){ story.appendChild(el('div','scene',name.toUpperCase())); }
+function scene(name, image){
+  story.appendChild(el('div','scene',name.toUpperCase()));
+  if(!image) return;
+  const im=el('img','scene-img'); im.onerror=()=>im.remove(); im.src=image;
+  story.appendChild(im);
+}
 function para(t, cls){story.appendChild(el('p',cls||'',t)); story.scrollTop=story.scrollHeight;}
 function ledger(list){
   facts.innerHTML=''; list.forEach(x=>{const li=el('li', known.has(x)?'':'new', x); facts.appendChild(li);});
@@ -144,7 +152,7 @@ async function start(premise){
   const s=await post('/start',{seed:+(q.get('seed')||7), referee:q.get('referee')||'decider', premise: premise||''});
   th.remove();
   story.appendChild(el('p','title', `${s.title} — ${s.premise}`));
-  scene(s.scene); para(s.opening); ledger(s.ledger); input.disabled=false; input.focus();
+  scene(s.scene, s.image); para(s.opening); ledger(s.ledger); input.disabled=false; input.focus();
   document.dispatchEvent(new CustomEvent('hobson:start',{detail:s}));
 }
 const pf=document.getElementById('pf'), pin=document.getElementById('premise-input');
@@ -165,7 +173,7 @@ f.addEventListener('submit', async e=>{
     timing.innerHTML=`Decider <b>${(t.timing.decider_ms/1000).toFixed(1)} s</b> on this Mac &nbsp;·&nbsp; Nova <b>${(t.timing.nova_ms/1000).toFixed(1)} s</b> on Bedrock`;
     para(t.paragraph);
     if(t.drafts && t.drafts.A){ draftbox.innerHTML=''; for(const k of ['A','B']){const p=el('p',k===t.picked?'picked':'',`Draft ${k}: ${t.drafts[k]}`); draftbox.appendChild(p);} draftsEl.hidden=false; }
-    if(t.opening){ scene(t.scene); para(t.opening); }
+    if(t.opening){ scene(t.scene, t.image); para(t.opening); }
     ledger(t.ledger);
     if(t.ends){ para('THE END','scene'); return; }
   }catch(err){ th.textContent='Something went wrong: '+(err&&err.message||err); if(!th.isConnected) story.appendChild(th); }

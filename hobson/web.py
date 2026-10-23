@@ -10,16 +10,18 @@ on POST /finish, or when the server stops.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import threading
 import time
 from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from . import scene_art
 from .game import Game
 
 STATIC = Path(__file__).resolve().parent / "static"
@@ -173,6 +175,33 @@ def turn(body: TurnBody):
         }
 
 
-def _scene_image(scene_art: str, scene=None):
-    """No pictures. Everything the panel shows is read from the rulings themselves."""
-    return None
+_scene_text: dict[str, str] = {}
+
+
+def _scene_image(art_name: str, scene=None):
+    """A drawing for this scene, composed from its own words (see hobson/scene_art.py).
+    The URL comes back immediately; the SVG is built when the browser asks for it."""
+    if scene is None:
+        return None
+    text = f"{scene.name} {scene.description}"
+    if _game is not None:
+        text += " " + getattr(_game.world, "premise", "")
+    k = hashlib.sha1(text.encode()).hexdigest()[:16]
+    _scene_text[k] = text
+    return f"/scene/{k}.svg"
+
+
+@app.get("/scene_texts")
+def scene_texts():
+    """The text each scene drawing was composed from, so the demo recorder can rebuild the same
+    SVGs offline (scene_art is deterministic)."""
+    return _scene_text
+
+
+@app.get("/scene/{key}.svg")
+def scene_svg(key: str):
+    text = _scene_text.get(key)
+    if not text:
+        return JSONResponse({"error": "unknown scene"}, status_code=404)
+    return Response(scene_art.svg_for(text), media_type="image/svg+xml",
+                    headers={"Cache-Control": "public, max-age=86400"})
