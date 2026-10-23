@@ -61,6 +61,32 @@ def short_name(x: str) -> str:
     return "a " + x
 
 
+_GENERIC = {"thing", "things", "one", "ones", "something", "anything", "it", "them",
+            "item", "items", "object", "objects", "person", "people", "someone"}
+
+
+def head_noun(short: str) -> str:
+    """'a locked cabinet by the lamp' -> 'cabinet'; 'a brass key' -> 'key'; 'their uncle' -> 'uncle'.
+    The trailing prepositional phrase is dropped first, because it usually names something that
+    IS in the ledger ('by the lamp') and matching on it would throw away honest facts."""
+    x = re.split(r"\s+(?:by|in|on|at|of|from|with|near|beside|under|inside)\s+", str(short).strip(), maxsplit=1)[0]
+    words = re.findall(r"[A-Za-z][A-Za-z'-]*", x)
+    return words[-1].lower() if words else ""
+
+
+def mentions_absent(fact: str, absent) -> str:
+    """The deterministic half of the screen: a fact that names an absent thing by its head noun
+    is refused without asking anyone. A model was asked first and let 'You do not have the key to
+    open the locked cabinet' through, which concedes the cabinet exists; a string match does not
+    have opinions. Returns the matched noun, or ''."""
+    text = str(fact).lower()
+    for a in absent:
+        h = head_noun(short_name(a))
+        if len(h) > 2 and h not in _GENERIC and re.search(rf"\b{re.escape(h)}(e?s)?\b", text):
+            return h
+    return ""
+
+
 def screen_facts(handler, state, absent, facts, fallback=None):
     """Last gate on the record: drop any fact that treats a thing the ledger says is absent as
     real. Nova proposes the outcomes, so on a contested turn it can offer "the key does not fit"
@@ -69,6 +95,12 @@ def screen_facts(handler, state, absent, facts, fallback=None):
     plain = [f for f in facts if not str(f).startswith("~")]
     if not absent or not plain:
         return list(facts), [], 0.0
+    # 1. the deterministic gate: anything naming an absent thing is out, no model involved
+    hard_drop = [f for f in plain if mentions_absent(f, absent)]
+    plain = [f for f in plain if f not in hard_drop]
+    if not plain:
+        return [f for f in facts if str(f).startswith("~")], hard_drop, 0.0
+    # 2. the model gate, for everything that survived the string match
     what = "; ".join(dict.fromkeys(short_name(a) for a in absent))
     qs = {f"f{i}": NoulQuestion(
             instructions=f'None of these exist: {what}. Does this sentence mention or rely on any of them? '
@@ -85,7 +117,7 @@ def screen_facts(handler, state, absent, facts, fallback=None):
         # fail closed: the record is the thing being protected, so a fact that is not clearly
         # clear of the absent things does not get written
         (drop if (d.value or d.unsure) else keep).append(f)
-    return keep + [f for f in facts if str(f).startswith("~")], drop, ms
+    return keep + [f for f in facts if str(f).startswith("~")], hard_drop + drop, ms
 
 
 class Continuity(Handler):

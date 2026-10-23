@@ -1,98 +1,124 @@
-/* Hobson visuals — drop-in. Watches the DOM the page already renders and adds:
-   - a You → Decider → Nova flow strip that lights up per turn (and animates "not sure" hand-offs),
-   - count-up confidence numbers, a 60% tick on every bar,
-   - danger pips (red at 4–5), a Lite/Pro route pill,
-   - a red flash on the ledger when a claim fails the ledger check, green when it passes.
-   No data is invented here: everything is read from the rows the server returned. */
+/* Hobson visuals. Three things the ruling log could not show at a glance:
+     1. the verdict  — was this turn allowed in, and did anything reach the ledger
+     2. the claims   — what the action relied on, and which of it the record actually holds
+     3. the timeline — the whole story's integrity so far, one column per turn
+   Everything here is read from the turn payload the server returned. Nothing is invented. */
 (function () {
-  const $ = (s, r) => (r || document).querySelector(s);
-  const rows = $('#rows'), story = $('#story'), ledger = $('#ledger');
-  if (!rows || !story) return;
+  const $ = s => document.querySelector(s);
+  const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
+  const V = $('#hv-verdict'), C = $('#hv-claims'), TL = $('#hv-timeline'), rows = $('#rows'), story = $('#story');
+  if (!V) return;
+  const turns = [];
 
-  // ---------- flow strip ----------
-  const flow = document.createElement('div');
-  flow.id = 'hv-flow';
+  // ---------- flow strip: who is doing what, right now ----------
+  const flow = el('div'); flow.id = 'hv-flow';
   flow.innerHTML = `
     <div class="node" data-n="you"><b>You</b><small>free text</small></div>
-    <div class="arrow dec"><span class="dot"></span></div>
-    <div class="node" data-n="decider"><b>Decider 2B</b><small>rules · on this Mac</small></div>
     <div class="arrow"><span class="dot"></span></div>
-    <div class="node" data-n="nova"><b>Nova</b><small>writes · on Bedrock</small></div>
-    <div class="legend"><span><i style="background:#68c478"></i>sure, Decider's call</span><span><i style="background:#ecab46"></i>not sure, handed to Nova</span></div>`;
-  rows.parentNode.insertBefore(flow, rows);
+    <div class="node" data-n="decider"><b>Decider 2B</b><small>decides what is true<br>on this Mac</small></div>
+    <div class="arrow"><span class="dot"></span></div>
+    <div class="node" data-n="nova"><b>Nova</b><small>writes the prose<br>on Bedrock</small></div>`;
+  V.parentNode.insertBefore(flow, V);
   const node = n => flow.querySelector(`.node[data-n="${n}"]`);
-  const arrows = flow.querySelectorAll('.arrow');
-  const setNodes = (cls, ...names) => { flow.querySelectorAll('.node').forEach(e => e.classList.remove('lit', 'busy', 'amber', 'red')); names.forEach(n => node(n).classList.add(cls)); };
-  function travel(i) { const d = arrows[i].querySelector('.dot'); d.classList.remove('go'); void d.offsetWidth; d.classList.add('go'); }
+  const lit = (...names) => { flow.querySelectorAll('.node').forEach(e => e.className = 'node'); names.forEach(n => node(n).classList.add('lit')); };
+  const travel = i => { const d = flow.querySelectorAll('.arrow')[i].querySelector('.dot'); d.classList.remove('go'); void d.offsetWidth; d.classList.add('go'); };
 
-  // ---------- count-up for the % in .conf ----------
-  function countUp(el) {
-    const m = el.textContent.match(/(\d+)%/); if (!m) return;
-    const target = +m[1], prefix = el.textContent.slice(0, m.index), t0 = performance.now(), dur = 900;
-    const tick = now => {
-      const k = Math.min(1, (now - t0) / dur), v = Math.round(target * (1 - Math.pow(1 - k, 3)));
-      el.textContent = `${prefix}${v}%`; if (k < 1) requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
+  // ---------- a confidence dial ----------
+  function dial(p, bad) {
+    const r = 13, c = 2 * Math.PI * r, s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    s.setAttribute('class', 'hv-dial' + (bad ? ' bad' : '')); s.setAttribute('viewBox', '0 0 34 34');
+    s.innerHTML = `<circle cx="17" cy="17" r="${r}" class="trk"/>
+      <circle cx="17" cy="17" r="${r}" class="val" stroke-dasharray="${c}" stroke-dashoffset="${c}"/>
+      <text x="17" y="21" text-anchor="middle">${Math.round(p * 100)}</text>`;
+    requestAnimationFrame(() => setTimeout(() => { s.querySelector('.val').style.strokeDashoffset = c * (1 - p); }, 80));
+    return s;
   }
 
-  // ---------- per-row decoration ----------
-  function decorate(row) {
-    if (row.dataset.hv) return; row.dataset.hv = '1';
-    const q = ($('.q', row) || {}).textContent || '', a = $('.a', row), conf = $('.conf', row);
-    if (conf) countUp(conf);
-    if (/true in the story/i.test(q) && a) {
-      const bad = /^No\b/.test(a.textContent);
-      const tag = document.createElement('span'); tag.className = 'hv-tag ' + (bad ? 'bad' : 'ok');
-      tag.textContent = bad ? 'not in the ledger' : 'ledger agrees'; a.appendChild(tag);
-      if (ledger) { ledger.classList.remove('hv-flash', 'hv-check'); void ledger.offsetWidth; ledger.classList.add(bad ? 'hv-flash' : 'hv-check'); }
+  // ---------- per turn ----------
+  function render(t) {
+    const claims = t.rows.filter(r => r.key === 'ledger' || r.key === 'grounding');
+    const denied = claims.filter(r => /^No\b/.test(r.answer));
+    const added = (t.new_facts || []).length;
+    const blocked = denied.length > 0;
+
+    V.innerHTML = ''; C.innerHTML = '';
+    const card = el('div', 'hv-verdict ' + (blocked ? 'bad' : 'ok'));
+    card.appendChild(el('div', 'stamp', blocked ? '✕' : '✓'));
+    const txt = el('div', 'txt');
+    const n = denied.length, plural = n === 1 ? 'claim is' : 'claims are';
+    txt.appendChild(el('div', 'head', blocked
+      ? `Refused · ${n} of ${claims.length} ${plural} not in the record`
+      : `Allowed · ${claims.length === 1 ? 'the claim checks out' : `all ${claims.length} claims check out`}`));
+    txt.appendChild(el('div', 'sub', added
+      ? `${added} new fact${added === 1 ? '' : 's'} recorded`
+      : 'Nothing from this turn was recorded'));
+    card.appendChild(txt);
+    if (added) {
+      const ul = el('ul', 'hv-added');
+      (t.new_facts || []).forEach(f => ul.appendChild(el('li', '', f)));
+      txt.appendChild(ul);
     }
-    if (/dangerous/i.test(q) && a) {
-      const m = a.textContent.match(/(\d)\s*of\s*5/); if (m) {
-        const n = +m[1], pips = document.createElement('span'); pips.className = 'hv-pips' + (n >= 4 ? ' hot' : '');
-        for (let i = 0; i < 5; i++) { const p = document.createElement('i'); pips.appendChild(p); setTimeout(() => { if (i < n) p.classList.add('on'); }, 120 + i * 110); }
-        a.appendChild(pips);
-        if (n >= 4) node('nova').classList.add('red');
-      }
+    V.appendChild(card);
+
+    if (claims.length) {
+      C.appendChild(el('div', 'hv-h', 'WHAT THE ACTION RELIED ON'));
+      claims.forEach((r, i) => {
+        const bad = /^No\b/.test(r.answer);
+        const row = el('div', 'hv-claim' + (bad ? ' bad' : ''));
+        row.style.animationDelay = (i * 110) + 'ms';
+        row.appendChild(dial(r.confidence || 0, bad));
+        const b = el('div', 'b');
+        b.appendChild(el('div', 'what', r.note || r.label));
+        b.appendChild(el('div', 'says', bad ? 'the record does not say so' : 'the record says so'));
+        row.appendChild(b);
+        C.appendChild(row);
+      });
     }
-    if (/keep to the facts/i.test(q) && a) {
-      const broke = /^No\b/.test(a.textContent);
-      const tag = document.createElement('span'); tag.className = 'hv-tag ' + (broke ? 'bad' : 'ok');
-      tag.textContent = broke ? 'caught by the guard' : 'checked against the ledger'; a.appendChild(tag);
-      if (broke && ledger) { ledger.classList.remove('hv-flash', 'hv-check'); void ledger.offsetWidth; ledger.classList.add('hv-flash'); }
+
+    // the same verdict, inline in the story, so the transcript itself carries the evidence
+    const you = [...document.querySelectorAll('#story p.you')].pop();
+    if (you) {
+      const chip = el('div', 'hv-chip ' + (blocked ? 'bad' : 'ok'));
+      chip.appendChild(el('span', 'dot', blocked ? '✕' : '✓'));
+      chip.appendChild(el('span', '', blocked
+        ? `${denied.length} of ${claims.length} claim${claims.length > 1 ? 's' : ''} refused · ${added ? added + ' fact' + (added > 1 ? 's' : '') + ' recorded' : 'nothing recorded'}`
+        : `${claims.length} claim${claims.length === 1 ? '' : 's'} checked · ${added} fact${added === 1 ? '' : 's'} recorded`));
+      you.after(chip);
     }
-    if (/who writes/i.test(q) && a) {
-      const pro = /pro/i.test(a.textContent), pill = document.createElement('span');
-      pill.className = 'hv-route ' + (pro ? 'pro' : 'lite'); pill.textContent = pro ? 'stronger writer' : 'faster writer'; a.appendChild(pill);
-    }
-    if (row.classList.contains('unsure')) { node('nova').classList.add('amber'); travel(1); }
+
+    turns.push({ added, blocked, denied: denied.length });
+    TL.innerHTML = '';
+    TL.appendChild(el('div', 'hv-h', 'THE STORY SO FAR · one column per turn'));
+    const strip = el('div', 'hv-strip');
+    turns.forEach((x, i) => {
+      const col = el('div', 'col' + (x.blocked ? ' bad' : ''));
+      const bar = el('div', 'bar'); bar.style.height = Math.min(48, 8 + x.added * 13) + 'px';
+      col.appendChild(bar); col.appendChild(el('span', '', String(i + 1)));
+      col.title = x.blocked ? `turn ${i + 1}: ${x.denied} claim(s) refused, ${x.added} fact(s) recorded`
+                            : `turn ${i + 1}: ${x.added} fact(s) recorded`;
+      strip.appendChild(col);
+    });
+    TL.appendChild(strip);
+    TL.appendChild(el('div', 'hv-note', 'A short red column is a turn someone tried to add something that was never true.'));
   }
 
-  // ---------- observers ----------
-  let turnOpen = false;
-  new MutationObserver(muts => {
-    for (const m of muts) for (const n of m.addedNodes) if (n.nodeType === 1 && n.classList.contains('row')) {
-      if (!turnOpen) { turnOpen = true; setNodes('lit', 'decider'); travel(0); }
-      // rows get class "in" ~30 ms after insertion; decorate once visible so the bar animation is seen
-      setTimeout(() => decorate(n), 40);
-    }
-    if (!rows.children.length) turnOpen = false;
-  }).observe(rows, { childList: true });
+  document.addEventListener('hobson:start', () => { lit('nova'); });
+  document.addEventListener('hobson:turn', e => { lit('decider', 'nova'); travel(0); travel(1); render(e.detail); });
 
-  new MutationObserver(muts => {
-    for (const m of muts) for (const n of m.addedNodes) {
-      if (n.nodeType !== 1) continue;
-      if (n.classList.contains('thinking')) {
-        if (/^Nova/.test(n.textContent)) { setNodes('busy', 'nova'); }
-        else { setNodes('busy', 'decider'); node('you').classList.add('lit'); travel(0); }
-      }
-      else if (n.tagName === 'P' && !n.classList.contains('you') && !n.classList.contains('scene') && turnOpen) {
-        // the narration paragraph landed: Nova wrote
-        node('nova').classList.add('lit'); turnOpen = false;
-      }
-    }
-  }).observe(story, { childList: true });
+  // keep the per-row flourishes in the (now collapsed) log
+  new MutationObserver(ms => { for (const m of ms) for (const n of m.addedNodes) {
+    if (n.nodeType !== 1 || !n.classList.contains('row')) continue;
+    const q = (n.querySelector('.q') || {}).textContent || '', a = n.querySelector('.a');
+    if (!a) continue;
+    if (/dangerous/i.test(q)) { const mm = a.textContent.match(/(\d)\s*of\s*5/); if (mm) {
+      const p = el('span', 'hv-pips' + (+mm[1] >= 4 ? ' hot' : ''));
+      for (let i = 0; i < 5; i++) { const d = el('i'); if (i < +mm[1]) d.classList.add('on'); p.appendChild(d); } a.appendChild(p); } }
+    if (/who writes/i.test(q)) { const pro = /pro/i.test(a.textContent);
+      a.appendChild(el('span', 'hv-route ' + (pro ? 'pro' : 'lite'), pro ? 'stronger writer' : 'faster writer')); }
+  } }).observe(rows, { childList: true });
 
-  // opening state
-  setNodes('lit', 'nova');
+  if (story) new MutationObserver(ms => { for (const m of ms) for (const n of m.addedNodes) {
+    if (n.nodeType === 1 && n.classList && n.classList.contains('thinking')) {
+      if (/^Nova/.test(n.textContent)) lit('nova'); else { lit('you'); travel(0); }
+    } } }).observe(story, { childList: true });
 })();

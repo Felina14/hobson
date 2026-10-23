@@ -13,9 +13,21 @@
   header h1{margin:0;font:700 22px/1 ui-monospace,Menlo,monospace;color:var(--ok);letter-spacing:.04em}
   header p{margin:0;color:var(--dim);font-size:15px}
   main{display:grid;grid-template-columns:1fr 440px;gap:0;height:calc(100vh - 61px)}
-  #story{overflow-y:auto;padding:24px 32px 120px}
+  #story{overflow-y:auto;padding:24px 32px 130px}
+  #story>*{max-width:680px;margin-left:auto;margin-right:auto}
+  #story .turn{max-width:680px;margin:0 auto;border-top:1px solid var(--line);padding-top:18px;margin-top:22px}
   #story .scene{font:600 13px ui-monospace,Menlo,monospace;letter-spacing:.14em;color:var(--dim);margin:26px 0 10px}
-  #story img.scene-img{width:100%;max-height:220px;object-fit:cover;border-radius:8px;margin:0 0 14px;opacity:.9}
+  #story img.scene-img{display:block;width:100%;border-radius:10px;opacity:0;animation:fade-in .7s ease forwards}
+  #story .scene-slot{position:relative;width:100%;aspect-ratio:16/9;max-height:250px;overflow:hidden;border-radius:10px;
+    margin:0 0 16px;background:#0c0d10;border:1px solid var(--line)}
+  #story .scene-slot.ready{border-color:transparent;background:none;height:auto;max-height:250px}
+  #story .scene-slot.ready img{max-height:250px;object-fit:cover}
+  #story .scene-wait{position:absolute;inset:0;display:grid;place-items:center;color:var(--dim);
+    font:12px ui-monospace,Menlo,monospace;letter-spacing:.06em}
+  #story .scene-wait::after{content:'';position:absolute;inset:0;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.035),transparent);animation:sweep 1.5s linear infinite}
+  @keyframes sweep{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+  @keyframes fade-in{to{opacity:1}}
   #story p{margin:0 0 14px}
   #premise{max-width:720px;margin:12vh auto 0;padding:0 8px}
   #premise h2{font:600 13px ui-monospace,Menlo,monospace;letter-spacing:.14em;color:var(--dim);margin:0 0 10px}
@@ -28,9 +40,11 @@
   #story .you{color:var(--ok);font:600 17px ui-monospace,Menlo,monospace;margin:22px 0 10px}
   #story .you::before{content:"> "}
   form#f{position:fixed;left:0;bottom:0;width:calc(100% - 440px);padding:14px 32px;background:linear-gradient(transparent,var(--bg) 30%)}
+  form#f input{max-width:680px;margin:0 auto;display:block}
   input{width:100%;font:17px ui-monospace,Menlo,monospace;padding:14px 16px;border-radius:8px;border:1px solid var(--line);background:#0c0d10;color:var(--ink)}
   input:focus{outline:1px solid var(--ok)}
   aside{background:var(--panel);border-left:1px solid var(--line);padding:16px 24px;overflow-y:auto}
+  aside h2,aside .sub{max-width:none}
   aside h2{margin:0 0 4px;font:700 14px ui-monospace,Menlo,monospace;letter-spacing:.14em;color:var(--dim)}
   aside .sub{color:var(--dim);font-size:13.5px;margin:0 0 10px;line-height:1.4}
   .row{border-top:1px solid var(--line);padding:7px 0;opacity:0;transform:translateY(6px);transition:opacity .35s,transform .35s}
@@ -81,10 +95,13 @@
   <aside>
     <h2>HOBSON'S RULINGS</h2>
     <p class="sub">Each answer comes from the small model on this Mac. Under 60% sure, it says so and asks Nova.</p>
-    <div id="rows"></div>
+    <div id="hv-verdict"></div>
+    <div id="hv-claims"></div>
+    <details id="log"><summary>Every question Decider was asked</summary><div id="rows"></div></details>
     <div id="timing"></div>
     <details id="drafts" hidden><summary>The two drafts Nova wrote</summary><div id="draftbox"></div></details>
     <div id="ledger"><h3>THE LEDGER · what the story has established</h3><ul id="facts"></ul></div>
+    <div id="hv-timeline"></div>
   </aside>
 </main>
 <form id="f"><input id="action" autocomplete="off" placeholder="What do you do?  (type anything)" disabled></form>
@@ -97,7 +114,15 @@ let busy=false, known=new Set();
 function el(tag, cls, text){const e=document.createElement(tag); if(cls) e.className=cls; if(text!=null) e.textContent=text; return e;}
 function scene(name, image){
   story.appendChild(el('div','scene',name.toUpperCase()));
-  if(image){const im=el('img','scene-img'); im.src=image; story.appendChild(im);}
+  if(!image) return;
+  // Nova Canvas draws the scene on first request, so hold the space and fade it in.
+  const slot=el('div','scene-slot');
+  slot.appendChild(el('div','scene-wait','Nova Canvas is drawing this place…'));
+  story.appendChild(slot);
+  const im=el('img','scene-img');
+  im.onload=()=>{slot.innerHTML=''; slot.appendChild(im); slot.classList.add('ready'); story.scrollTop=story.scrollHeight;};
+  im.onerror=()=>slot.remove();
+  im.src=image;
 }
 function para(t, cls){story.appendChild(el('p',cls||'',t)); story.scrollTop=story.scrollHeight;}
 function ledger(list){
@@ -133,6 +158,7 @@ async function start(premise){
   th.remove();
   story.appendChild(el('p','title', `${s.title} — ${s.premise}`));
   scene(s.scene, s.image); para(s.opening); ledger(s.ledger); input.disabled=false; input.focus();
+  document.dispatchEvent(new CustomEvent('hobson:start',{detail:s}));
 }
 const pf=document.getElementById('pf'), pin=document.getElementById('premise-input');
 pf.addEventListener('submit', e=>{e.preventDefault(); start(pin.value.trim());});
@@ -141,11 +167,13 @@ pin.focus();
 f.addEventListener('submit', async e=>{
   e.preventDefault(); if(busy) return; const action=input.value.trim(); if(!action) return;
   busy=true; input.value=''; input.disabled=true;
+  story.appendChild(el('div','turn'));
   para(action,'you'); const th=el('p','thinking','Hobson is deciding…'); story.appendChild(th); story.scrollTop=story.scrollHeight;
   rows.innerHTML=''; timing.textContent=''; draftsEl.hidden=true;
   try{
     const t=await post('/turn',{action});
     th.remove();
+    document.dispatchEvent(new CustomEvent('hobson:turn',{detail:t}));
     await renderRows(t.rows);
     timing.innerHTML=`Decider <b>${(t.timing.decider_ms/1000).toFixed(1)} s</b> on this Mac &nbsp;·&nbsp; Nova <b>${(t.timing.nova_ms/1000).toFixed(1)} s</b> on Bedrock`;
     para(t.paragraph);
