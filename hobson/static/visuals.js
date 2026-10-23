@@ -125,6 +125,7 @@
 
     // the same verdict, inline in the story, so the transcript itself carries the evidence
     const you = [...document.querySelectorAll('#story p.you')].pop();
+    lastLedger = t.ledger || [];
     markSentence(you, claims, t.ledger);
     if (you) {
       const chip = el('div', 'hv-chip ' + (blocked ? 'bad' : 'ok'));
@@ -161,7 +162,66 @@
     if (led) { led.classList.remove('sealed'); void led.offsetWidth; if (blocked && !added) led.classList.add('sealed'); }
   }
 
-  document.addEventListener('hobson:start', () => { lit('nova'); });
+  // ---------- the turn, while it is being decided ----------
+  // Every line here is a milestone the server actually reached; nothing is announced early and
+  // no progress is invented. The claims appear when Nova has extracted them, and each one flips
+  // the moment Decider has ruled it.
+  let stage = null;
+  const PHASE = {
+    reading: 'Nova is reading what the action relies on',
+    claims:  'Decider is checking each claim against the record',
+    ruled:   'Nova is proposing what could happen',
+    writing: 'is writing the paragraph',
+  };
+
+  function openStage() {
+    closeStage();
+    stage = el('div', 'hv-stage');
+    stage.appendChild(el('div', 'step', PHASE.reading)).classList.add('on');
+    story.appendChild(stage);
+    story.scrollTop = story.scrollHeight;
+  }
+  function closeStage() { if (stage) { stage.remove(); stage = null; } }
+
+  function phase(ev) {
+    if (!stage) openStage();
+    const head = stage.querySelector('.step');
+    if (ev.phase === 'claims') {
+      head.textContent = PHASE.claims;
+      const list = el('div', 'hv-pending');
+      (ev.claims || []).concat(ev.holdings || []).forEach(c => {
+        const chip = el('div', 'chip');
+        chip.appendChild(el('span', 'spin'));
+        chip.appendChild(el('span', '', String(c)));
+        list.appendChild(chip);
+      });
+      if (list.children.length) stage.appendChild(list);
+    } else if (ev.phase === 'ruled') {
+      head.textContent = PHASE.ruled;
+      const chips = [...stage.querySelectorAll('.chip')];
+      (ev.checks || []).forEach((c, i) => setTimeout(() => {
+        const chip = chips[i]; if (!chip) return;
+        chip.classList.add(c.ok ? 'ok' : 'bad');
+        const sp = chip.querySelector('.spin');
+        if (sp) sp.textContent = c.ok ? '✓' : '✕';
+        chip.appendChild(el('b', '', Math.round((c.confidence || 0) * 100) + '%'));
+      }, i * 260));
+      const you = [...document.querySelectorAll('#story p.you')].pop();
+      setTimeout(() => markSentence(you, (ev.checks || []).map(
+        c => ({ answer: c.ok ? 'Yes' : 'No, that never happened', note: c.detail })), lastLedger),
+        (ev.checks || []).length * 260 + 120);
+    } else if (ev.phase === 'writing') {
+      head.textContent = `Nova ${ev.tier === 'pro' ? 'Pro' : 'Lite'} ${PHASE.writing}`;
+      if (ev.why) head.appendChild(el('small', '', ev.why));
+      lit('nova');
+    }
+  }
+
+  let lastLedger = [];
+  document.addEventListener('hobson:begin', () => { lit('you'); travel(0); openStage(); });
+  document.addEventListener('hobson:phase', e => phase(e.detail));
+  document.addEventListener('hobson:end', closeStage);
+  document.addEventListener('hobson:start', e => { lit('nova'); lastLedger = (e.detail||{}).ledger || []; });
   document.addEventListener('hobson:turn', e => { lit('decider', 'nova'); travel(0); travel(1); render(e.detail); });
 
   // keep the per-row flourishes in the (now collapsed) log

@@ -12,12 +12,13 @@ from __future__ import annotations
 
 import hashlib
 import json
+import queue
 import threading
 import time
 from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -162,17 +163,22 @@ def turn(body: TurnBody):
         def on_drafts(drafts, ed):
             captured["drafts"], captured["editor"] = drafts, ed
         res = _game.turn(body.action, on_rulings=on_rulings, on_drafts=on_drafts)
-        t = res["turn"]
-        return {
-            "scene": res["scene"], "image": _scene_image(_game.scene.art, _game.scene),
-            "candidates": res.get("candidates", {}),
-            "rows": _rows(res["decisions"], captured["info"], res["effect"], captured.get("editor")),
-            "drafts": captured.get("drafts", {}), "picked": t.picked,
-            "paragraph": t.paragraph, "opening": res["opening"], "ends": res["ends"],
-            "ledger": list(_game.ledger.facts), "new_facts": t.new_facts,
-            "timing": {"decider_ms": round(t.decider_ms), "nova_ms": round(t.nova_rulings_ms + t.nova_narration_ms)},
-            "referee": _game.mode,
-        }
+        return _turn_payload(res, captured)
+
+
+def _turn_payload(res, captured):
+    """The shape both /turn and the last line of /turn_stream return."""
+    t = res["turn"]
+    return {
+        "scene": res["scene"], "image": _scene_image(_game.scene.art, _game.scene),
+        "candidates": res.get("candidates", {}),
+        "rows": _rows(res["decisions"], captured["info"], res["effect"], captured.get("editor")),
+        "drafts": captured.get("drafts", {}), "picked": t.picked,
+        "paragraph": t.paragraph, "opening": res["opening"], "ends": res["ends"],
+        "ledger": list(_game.ledger.facts), "new_facts": t.new_facts,
+        "timing": {"decider_ms": round(t.decider_ms), "nova_ms": round(t.nova_rulings_ms + t.nova_narration_ms)},
+        "referee": _game.mode,
+    }
 
 
 _scene_text: dict[str, str] = {}
@@ -189,6 +195,48 @@ def _scene_image(art_name: str, scene=None):
     k = hashlib.sha1(text.encode()).hexdigest()[:16]
     _scene_text[k] = text
     return f"/scene/{k}.svg"
+
+
+@app.post("/turn_stream")
+def turn_stream(body: TurnBody):
+    """The same turn as POST /turn, reported as it happens: one JSON object per line.
+
+    A turn takes several seconds because Nova is called twice and Decider several times. Sending
+    only the finished result makes the page look frozen through the most interesting part, so each
+    real milestone is pushed as it is reached -- claims extracted, claims ruled, who is writing --
+    and the full payload arrives last, identical to what /turn returns.
+    """
+    if _game is None:
+        return JSONResponse({"error": "call /start first"}, status_code=400)
+
+    q: queue.Queue = queue.Queue()
+
+    def work():
+        try:
+            with _lock:
+                captured = {}
+                res = _game.turn(
+                    body.action,
+                    on_rulings=lambda d, i: captured.update(decisions=d, info=i),
+                    on_drafts=lambda d, e: captured.update(drafts=d, editor=e),
+                    on_phase=lambda name, data: q.put({"phase": name, **data}),
+                )
+                q.put({"phase": "done", "turn": _turn_payload(res, captured)})
+        except Exception as e:                       # the page shows the error rather than hanging
+            q.put({"phase": "error", "error": f"{type(e).__name__}: {e}"})
+        finally:
+            q.put(None)
+
+    threading.Thread(target=work, daemon=True).start()
+
+    def stream():
+        while True:
+            item = q.get()
+            if item is None:
+                return
+            yield json.dumps(item) + "\n"
+
+    return StreamingResponse(stream(), media_type="application/x-ndjson")
 
 
 @app.get("/scene_texts")

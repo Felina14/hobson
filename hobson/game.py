@@ -70,13 +70,18 @@ class Game:
         return self.narrator.opening(self.world, self.scene, self.ledger)
 
     # -- one turn -------------------------------------------------------------------------
-    def turn(self, action: str, on_rulings=None, on_drafts=None) -> dict:
+    def turn(self, action: str, on_rulings=None, on_drafts=None, on_phase=None) -> dict:
+        # on_phase reports real milestones as they happen, so a caller can show the turn being
+        # decided instead of a seven-second pause. Nothing is announced before it is true.
+        phase = on_phase or (lambda *a, **k: None)
         n = self.narrator
         n.start_turn()
         scene = self.scene
         state = state_text(self.world, scene, self.ledger, action, self.alert)
         lstate = state_text(self.world, scene, self.ledger, None, self.alert)   # ends at the ledger
+        phase("reading", {})
         claims, holdings = n.extract_claims(action, self.ledger)
+        phase("claims", {"claims": list(claims), "holdings": [str(h) for h in holdings]})
         decider_ms = 0.0
 
         # calls A (ledger alone: claims, holdings) and B (with the action: the policy dice)
@@ -92,6 +97,10 @@ class Game:
             d1 += self.referee.holdings(lstate, holdings)
         dice = next(d for d in d1 if d.name == "dice")
         atype = dice.value
+        phase("ruled", {"atype": atype, "checks": [
+            {"detail": str(d.detail), "ok": bool(d.value), "confidence": d.confidence,
+             "unsure": bool(d.unsure), "kind": d.name}
+            for d in d1 if d.name in ("ledger", "grounds")]})
         claim_lines = [f'- "{d.detail}": {"established" if d.value else "NOT established"}' for d in d1 if d.name == "ledger"]
         claim_lines += [f'- the player {"does" if d.value else "does NOT"} hold {d.detail}' for d in d1 if d.name == "grounds"]
 
@@ -167,6 +176,7 @@ class Game:
             on_rulings(decisions, {"tier": tier, "danger": dval, "atype": atype, "decider_ms": decider_ms,
                                    "route_why": route_why, "contested": contested})
 
+        phase("writing", {"tier": tier, "why": route_why})
         # two drafts; the continuity guard reads each against the ledger; the editor picks
         drafts = n.drafts(tier, self.world, scene, self.ledger, action_for_nova, brief)
         if self.rng.random() < 0.5:

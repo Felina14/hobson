@@ -87,3 +87,27 @@
 .hv-mark.bad{border-color:var(--bad);color:#f3a0a0}
 .hv-mark.ok{border-color:var(--ok);color:#a6dfb2}
 @keyframes hv-ink{from{border-color:transparent;opacity:.55}to{opacity:1}}
+
+/* --- the turn while it is being decided --------------------------- */
+.hv-stage{max-width:680px;margin:0 auto 16px;padding:12px 14px;border:1px solid var(--line);
+  border-radius:10px;background:#0e1014;animation:hv-rise .35s ease both}
+.hv-stage .step{font:13px ui-monospace,Menlo,monospace;color:var(--dim);letter-spacing:.02em;
+  display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.hv-stage .step::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--ok);
+  display:inline-block;animation:hv-pulse 1.1s ease-in-out infinite}
+.hv-stage .step small{color:#6d7078;font-size:11.5px}
+@keyframes hv-pulse{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:1;transform:scale(1)}}
+.hv-pending{display:flex;flex-direction:column;gap:6px;margin-top:11px}
+.hv-pending .chip{display:flex;align-items:center;gap:9px;font-size:13.5px;color:var(--dim);
+  border-left:2px solid var(--line);padding:3px 0 3px 10px;transition:color .3s,border-color .3s}
+.hv-pending .chip .spin{width:15px;height:15px;border-radius:50%;border:1.5px solid var(--line);
+  border-top-color:var(--dim);display:grid;place-items:center;font-size:10px;font-weight:700;
+  animation:hv-spin 1s linear infinite}
+.hv-pending .chip b{margin-left:auto;font:600 12px ui-monospace,Menlo,monospace}
+.hv-pending .chip.ok{color:#a6dfb2;border-color:var(--ok)}
+.hv-pending .chip.ok .spin{animation:none;border-color:var(--ok);color:var(--ok)}
+.hv-pending .chip.ok b{color:var(--ok)}
+.hv-pending .chip.bad{color:#f3a0a0;border-color:var(--bad)}
+.hv-pending .chip.bad .spin{animation:none;border-color:var(--bad);color:var(--bad)}
+.hv-pending .chip.bad b{color:var(--bad)}
+@keyframes hv-spin{to{transform:rotate(360deg)}}
