@@ -183,3 +183,50 @@ def problem(step):
         s += txt(W // 2, 684, "Nova writes  \u00b7  Strands Decider 2B decides what is true",
                  21, INK, SERIF, anchor="middle")
     return s
+
+
+# --- before the problem: what the thing actually is ----------------------------------------
+PREMISE = "a lighthouse on the Kerala coast during a storm, 1962;\nI am the keeper's niece, sent up with a lamp and a letter I have not read"
+STEPS = [
+    ("1", "You type where the story begins.",
+     "No script, no map, no items list. Just a sentence."),
+    ("2", "Amazon Nova invents the world.",
+     "The place, the people, and the facts the story starts with."),
+    ("3", "You type what you do, in your own words.",
+     "Nova writes what happens next, and the story goes on."),
+]
+OPENING_FACTS = [
+    "You are the keeper's niece with a lamp and an unread letter.",
+    "The lighthouse is old, with creaking floors and flickering lights.",
+    "You have tried but failed to read the letter.",
+]
+
+
+def what(step):
+    """step 1: what the app is. 2: and the record it keeps."""
+    s = txt(80, 62, "HOBSON", 26, OK, MONO, "bold", ls=3)
+    s += txt(80, 90, "a text adventure that nobody wrote", 17, DIM, SERIF)
+    s += f'<path d="M80 118 H{W-80}" stroke="{LINE}" stroke-width="1.5"/>'
+
+    y = 186
+    for n, head, sub in STEPS:
+        s += f'<circle cx="104" cy="{y-8}" r="17" fill="none" stroke="{OK}" stroke-width="1.5"/>'
+        s += txt(104, y - 1, n, 17, OK, MONO, "bold", anchor="middle")
+        s += txt(144, y, head, 25, INK, SERIF)
+        s += txt(144, y + 28, sub, 18, DIM, SERIF)
+        y += 86
+
+    if step >= 2:
+        bx, by, bw, bh = 80, 470, W - 160, 230
+        s += box(bx, by, bw, bh, stroke=OK, fill=PANEL, r=12, sw=1.6, op=0.95)
+        s += txt(bx + 24, by + 36, "THE RECORD", 13, OK, MONO, "bold", ls=2)
+        s += txt(bx + 150, by + 36, "every fact the story has established", 13, DIM, MONO, ls=1)
+        s += f'<path d="M{bx+24} {by+52} H{bx+bw-24}" stroke="{LINE}" stroke-width="1.2"/>'
+        fy = by + 86
+        for f in OPENING_FACTS:
+            s += f'<path d="M{bx+26} {fy-13} V{fy+6}" stroke="{OK}" stroke-width="2"/>'
+            s += txt(bx + 40, fy, f, 19, INK, SERIF)
+            fy += 34
+        s += txt(bx + 24, by + bh - 24, "The story's only memory. Nothing else counts as true.",
+                 18, DIM, SERIF)
+    return s

@@ -150,8 +150,10 @@ for i, s in enumerate(narr["scenes"]):
     if not os.path.exists(vo): sys.exit(f"missing voice-over {vo}; run make_vo.sh first")
     k = s["kind"]
     if k == "build":
-        pngs = [SL.render(f"{sid}{n}", SL.problem(n), f"{TMP}/{sid}_{n}.png") for n in (1, 2, 3)]
-        build_segment(pngs, s.get("weights", [0.30, 0.34, 0.36]), vo, out)
+        maker = {"what": SL.what, "problem": SL.problem}[s.get("build", "problem")]
+        steps = s.get("steps", 3)
+        pngs = [SL.render(f"{sid}{n}", maker(n), f"{TMP}/{sid}_{n}.png") for n in range(1, steps + 1)]
+        build_segment(pngs, s.get("weights", [1.0] * steps), vo, out)
     elif k in ("slide", "results"):
         png = f"{TMP}/{sid}.png"
         design = s.get("slide")
