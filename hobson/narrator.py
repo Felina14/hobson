@@ -115,7 +115,7 @@ class Narrator:
     def make_world(self, premise: str):
         """Nova Pro invents the setting from the player's premise (or from nothing) and the
         opening facts. Returns (World, Scene). Nothing is read from a file."""
-        from .state import ART, RULES, Scene, World
+        from .state import RULES, Scene, World
         ask = premise.strip() or "surprise me: any time, any place, no magic unless the premise asks for it"
         user = (f"PREMISE from the player: {ask}\n\n"
                 "Design the start of a text adventure for this premise. Return JSON only:\n"
@@ -123,8 +123,7 @@ class Narrator:
                 '"established": ["<2-3 short facts true at the start: who the player is, what they carry (name amounts), one thing about the place>"], '
                 '"trouble": "<one line: what arrives after a very dangerous act in this setting>", '
                 '"scene": {"name": "<kebab-case id>", "description": "<2-3 sentences, concrete, present tense>", '
-                '"characters": ["<who is here, 1-3>"], "exits": {"<name>": "<where it leads>"}, '
-                f'"art": "<one of {ART}: pick a drawing only if it truly fits this place, else none>"}}}}')
+                '"characters": ["<who is here, 1-3>"], "exits": {"<name>": "<where it leads>"}}}')
         text, _ = self.converse("pro", "You design text adventures. Reply with JSON only.", user,
                                 temperature=0.8, max_tokens=600)
         d = parse_json(text)
@@ -132,7 +131,7 @@ class Narrator:
         scene = Scene(name=str(sc.get("name", "start")).strip().lower().replace(" ", "-")[:40] or "start",
                       description=str(sc.get("description", "")).strip(), characters=list(sc.get("characters", []))[:3],
                       exits={str(k): str(v) for k, v in (sc.get("exits") or {}).items()},
-                      established=[], art=sc.get("art") if sc.get("art") in ART else "none")
+                      established=[])
         world = World(premise=str(d.get("premise", ask)), title=str(d.get("title", "Hobson")), rules=list(RULES),
                       established=[str(x) for x in d.get("established", [])][:3],
                       trouble_arrives=str(d.get("trouble", "Trouble is arriving, drawn by the violence of the last turn.")))
@@ -140,13 +139,12 @@ class Narrator:
 
     def make_scene(self, world, name: str, ledger, reason: str):
         """A new scene when an outcome moves the player. Nova Lite writes it from the ledger."""
-        from .state import ART, Scene
+        from .state import Scene
         user = (f"SETTING: {world.premise}\nLEDGER: {'; '.join(ledger.facts)}\n"
                 f"The player is now moving to: {name}. Why: {reason}\n"
                 "Describe this new place. Return JSON only:\n"
                 '{"description": "<2-3 sentences, concrete, present tense>", "characters": ["<0-3>"], '
-                '"exits": {"<name>": "<where it leads>"}, "established": ["<0-2 facts true on arrival>"], '
-                f'"art": "<one of {ART}: only if it truly fits, else none>"}}')
+                '"exits": {"<name>": "<where it leads>"}, "established": ["<0-2 facts true on arrival>"]}')
         text, _ = self.converse("lite", "You design text adventures. Reply with JSON only.", user,
                                 temperature=0.7, max_tokens=400)
         try:
@@ -156,8 +154,7 @@ class Narrator:
         return Scene(name=name, description=str(d.get("description", "")).strip(),
                      characters=list(d.get("characters", []))[:3],
                      exits={str(k): str(v) for k, v in (d.get("exits") or {}).items()},
-                     established=[str(x) for x in d.get("established", [])][:2],
-                     art=d.get("art") if d.get("art") in ART else "none")
+                     established=[str(x) for x in d.get("established", [])][:2])
 
     def opening(self, world, scene, ledger):
         user = (f"SETTING: {world.premise}\nSCENE: {scene.description}\n"

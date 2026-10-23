@@ -126,7 +126,7 @@ def start(body: StartBody):
                      run_name=f"hobson_web_{body.referee}_s{body.seed}_{time.strftime('%Y%m%d-%H%M%S')}")
         opening = _game.begin()
         return {"scene": _game.scene.name, "opening": opening, "ledger": list(_game.ledger.facts),
-                "image": _scene_image(_game.scene.art, _game.scene), "title": _game.world.title,
+                "image": _scene_image(_game.scene), "title": _game.world.title,
                 "premise": _game.world.premise}
 
 
@@ -173,7 +173,7 @@ def _turn_payload(res, captured):
     """The shape both /turn and the last line of /turn_stream return."""
     t = res["turn"]
     return {
-        "scene": res["scene"], "image": _scene_image(_game.scene.art, _game.scene),
+        "scene": res["scene"], "image": _scene_image(_game.scene),
         "candidates": res.get("candidates", {}),
         "rows": _rows(res["decisions"], captured["info"], res["effect"], captured.get("editor")),
         "drafts": captured.get("drafts", {}), "picked": t.picked,
@@ -187,7 +187,7 @@ def _turn_payload(res, captured):
 _scene_text: dict[str, str] = {}
 
 
-def _scene_image(art_name: str, scene=None):
+def _scene_image(scene=None):
     """A drawing for this scene, composed from its own words (see hobson/scene_art.py).
     The URL comes back immediately; the SVG is built when the browser asks for it."""
     if scene is None:

@@ -17,10 +17,6 @@ RULES = [
     "The player cannot do what the setting makes impossible (fly, teleport, pay with money they do not hold).",
 ]
 
-# Where a scene's banner can come from: the six line drawings in static/scenes, or none.
-ART = ["gate", "market", "inn", "jail", "temple", "road", "lighthouse", "none"]
-
-
 @dataclass
 class Scene:
     name: str                 # short kebab-case id Nova gives it, e.g. "harbour-steps"
@@ -28,7 +24,6 @@ class Scene:
     characters: list[str]
     exits: dict[str, str]     # name -> one line
     established: list[str]    # facts true on arrival
-    art: str = "none"
 
 
 @dataclass
