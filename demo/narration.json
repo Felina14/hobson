@@ -17,7 +17,15 @@
         "An LLM game master believes whatever the player asserts. Hobson gives the believing to a model that cannot write."
       ],
       "caption": "Hobson: Nova writes any story you like; Strands Decider 2B keeps it honest",
-      "vo": "This is Hobson, a text adventure with two brains. Amazon Nova writes the story. Strands Decider 2B, a small model that cannot write a sentence, decides what is true in it. Nothing is written in advance: you type where the story begins, and what you do. An LLM game master believes whatever the player says. Hobson gives the believing to a model that cannot write."
+      "vo": "This is Hobson, a text adventure with two brains. Amazon Nova writes the story. Strands Decider 2B, a small model that cannot write a sentence, decides what is true in it. An LLM game master believes whatever the player says; Hobson gives the believing to the model that cannot write.",
+      "slide": "title"
+    },
+    {
+      "id": "s02_agenda",
+      "kind": "slide",
+      "slide": "agenda",
+      "caption": "Four things: a world nobody wrote, an honest turn, a bluff, and the measurements.",
+      "vo": "Four things. A world nobody wrote. One honest turn. Then a bluff. Then what it measures like against the obvious alternative."
     },
     {
       "id": "s04_questions",
@@ -36,7 +44,8 @@
         "Under 60%, Decider says \"not sure\" and Nova takes that call."
       ],
       "caption": "The ledger is the story's only memory. Decider checks the player, and the narrator, against it.",
-      "vo": "Every turn, Decider answers: what did you try; is each claim you made true in the story so far; do you hold the items you named; which of Nova's four proposed outcomes follows; and does Nova's own paragraph keep to the facts. The ledger is the story's only memory. Under sixty percent sure, Decider says not sure and Nova takes that call."
+      "vo": "Every turn Decider answers these, against the ledger, which is the story's only memory. What you tried. Whether each claim you made is true so far. Whether you hold what you named. Which outcome follows. And whether Nova's own paragraph keeps to the facts. Under sixty percent sure, it says so and Nova takes that call.",
+      "slide": "questions"
     },
     {
       "id": "t00_open",
@@ -72,7 +81,7 @@
       "id": "s90_results",
       "kind": "results",
       "caption": "The same script, two referees, three runs each",
-      "vo": "The same script, two referees, three runs each. Decider refused eleven of the twenty-two claims I made. Nova Lite, doing the identical job from the identical state, refused eight of twenty-four, and it believed the brass key in two runs of three. Ruling time is a wash, and Decider's share of it costs nothing. Honestly: on the open picks, which category, which outcome, Decider is often not sure, and says so, and Nova takes those. On yes or no against the record, it is the one you want.",
+      "vo": "The same script, two referees, three runs each. Decider refused eleven of the twenty-two claims I made; Nova Lite, doing the identical job from the identical state, refused eight of twenty-four, and believed the brass key in two runs of three. Ruling time is a wash and Decider's share costs nothing. Honestly: on the open picks it is often not sure, and says so. On yes or no against the record, it is the one you want.",
       "rows": [
         [
           "",
@@ -103,7 +112,8 @@
       "lines": [
         "Decider cannot be talked into anything, and says \"not sure\" when it is.",
         "Nova writes, proposes, and takes the open calls. results/md/referee_compare.md"
-      ]
+      ],
+      "slide": "results"
     },
     {
       "id": "s99_end",
@@ -115,7 +125,8 @@
         "Decision pattern: #guardrails. The ledger guard is one typed question and ten lines of wiring, reusable anywhere a generator is allowed to act on what a user asserts."
       ],
       "caption": "github.com/Felina14/hobson · #strands-decider-2b #guardrails",
-      "vo": "Code, comparison and every run's log are in the repo. The ledger guard is one typed question, reusable wherever a generator acts on what a user tells it. Thanks."
+      "vo": "Code, the comparison and every run's log are in the repo, with the ledger guard as a Strands intervention you can drop into an agent of your own. Thanks for watching.",
+      "slide": "end"
     }
   ],
   "premise": "a lighthouse on the Kerala coast during a storm, 1962; I am the keeper's niece, sent up with a lamp and a letter I have not read"

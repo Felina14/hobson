@@ -12,6 +12,8 @@ Output: demo/hobson_demo.mp4  (1280x800, h264 + aac)
 import json, os, subprocess, textwrap, shutil, sys
 from PIL import Image, ImageDraw, ImageFont
 
+import slides as SL
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 REC, VO, TMP = f"{HERE}/rec", f"{HERE}/vo", f"{HERE}/_build"
 shutil.rmtree(TMP, ignore_errors=True); os.makedirs(TMP)
@@ -77,7 +79,7 @@ def results_png(path, s=None):
 
 def still_segment(png, vo, cap_png, out, min_len=None):
     """A still image shown for the VO length (+0.8 s), caption bar at the bottom."""
-    length = max(dur(vo) + 0.8, min_len or 0)
+    length = max(dur(vo) + 0.35, min_len or 0)
     run(["ffmpeg", "-y", "-loop", "1", "-framerate", "24", "-i", png, "-i", vo, "-i", cap_png,
          "-filter_complex", f"[0:v]scale={W}:{H-CAP_H}:force_original_aspect_ratio=decrease:force_divisible_by=2:flags=lanczos,pad={W}:{H}:(ow-iw)/2:0:color={BGHEX}[v0];[v0][2:v]overlay=0:{H-CAP_H}[v];[1:a]apad[a]",
          "-map", "[v]", "-map", "[a]", "-t", f"{length:.3f}", "-r", "24", "-c:v", "libx264", "-crf", "20", "-pix_fmt", "yuv420p", "-c:a", "aac", "-ar", "48000", out])
@@ -85,11 +87,34 @@ def still_segment(png, vo, cap_png, out, min_len=None):
 def clip_segment(start, end, vo, cap_png, out):
     """Cut [start,end] of the recording; freeze the last frame if the VO runs longer."""
     clip_len = end - start
-    length = max(clip_len, dur(vo) + 0.8)
+    length = max(clip_len, dur(vo) + 0.5)
     pad = max(0.0, length - clip_len)
     run(["ffmpeg", "-y", "-ss", f"{start:.3f}", "-to", f"{end:.3f}", "-i", f"{REC}/run.webm", "-i", vo, "-i", cap_png,
          "-filter_complex", f"[0:v]scale={W}:{H-CAP_H}:force_original_aspect_ratio=decrease:force_divisible_by=2:flags=lanczos,pad={W}:{H}:(ow-iw)/2:0:color={BGHEX},tpad=stop_mode=clone:stop_duration={pad:.3f}[v0];[v0][2:v]overlay=0:{H-CAP_H}[v];[1:a]apad[a]",
          "-map", "[v]", "-map", "[a]", "-t", f"{length:.3f}", "-r", "24", "-c:v", "libx264", "-crf", "20", "-pix_fmt", "yuv420p", "-c:a", "aac", "-ar", "48000", out])
+
+DESIGNS = {
+    "title": lambda s: SL.title(),
+    "agenda": lambda s: SL.agenda([
+        ("A world nobody wrote", "you type a premise; Nova builds the place and the opening facts"),
+        ("An honest turn", "Decider checks what the action relies on, against the record"),
+        ("A bluff", "a brass key, an uncle and a cabinet that do not exist"),
+        ("Two referees, measured", "the same job done by Nova Lite, three runs each"),
+    ]),
+    "questions": lambda s: SL.questions([
+        ("What did you try?", "one of nine fixed categories", "pick"),
+        ("Is that true in the story so far?", "each claim, against the ledger", "yesno"),
+        ("Do you actually have that?", "each item the action names", "yesno"),
+        ("What happens?", "one of four outcomes Nova proposed", "pick"),
+        ("Does the writing keep to the facts?", "Nova's paragraph, before it counts", "guard"),
+    ]),
+    "results": lambda s: SL.results(("Decider 2B referee", "Nova Lite referee"),
+        [(r[0], r[1], r[2], i < 2) for i, r in enumerate(s["rows"][1:])], s.get("lines", [])),
+    "end": lambda s: SL.end("github.com/Felina14/hobson", ["#strands-decider-2b", "#guardrails"],
+        ["Strands Decider 2B runs locally. Amazon Nova Lite and Pro run on Amazon Bedrock.",
+         "The ledger guard also ships as a standalone Strands InterventionHandler,",
+         "with a refund desk that is not a game."]),
+}
 
 narr = json.load(open(f"{HERE}/narration.json"))
 STILLS = not os.path.exists(f"{REC}/run.webm")   # no recording yet: use the t0N_full.png screenshots instead
@@ -104,10 +129,16 @@ for i, s in enumerate(narr["scenes"]):
     if not os.path.exists(vo): sys.exit(f"missing voice-over {vo}; run make_vo.sh first")
     caption_png(s["caption"], cap)
     k = s["kind"]
-    if k == "slide":
-        png = f"{TMP}/{sid}.png"; slide_png(s, png); still_segment(png, vo, cap, out)
-    elif k == "results":
-        png = f"{TMP}/{sid}.png"; results_png(png, s); still_segment(png, vo, cap, out)
+    if k in ("slide", "results"):
+        png = f"{TMP}/{sid}.png"
+        design = s.get("slide")
+        if design:
+            SL.render(sid, DESIGNS[design](s), png)
+        elif k == "results":
+            results_png(png, s)
+        else:
+            slide_png(s, png)
+        still_segment(png, vo, cap, out)
     elif k == "clip":
         n = s["turn"]
         if STILLS: still_segment(f"{REC}/t0{n}_full.png", vo, cap, out)
