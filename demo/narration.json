@@ -16,16 +16,14 @@
     "Nothing about the story is written in advance: you type where it begins, and what you do.",
     "An LLM game master believes whatever the player asserts. Hobson gives the believing to a model that cannot write."
    ],
-   "caption": "Hobson: Nova writes any story you like; Strands Decider 2B keeps it honest",
-   "vo": "This is Hobson, a text adventure with two brains. Amazon Nova writes the story. Strands Decider 2B, a small model that cannot write a sentence, decides what is true in it. An LLM game master believes whatever the player says; Hobson gives the believing to the model that cannot write.",
+   "vo": "Tell a language model you have a brass key your uncle gave you, and the key exists. The model writing the world is the one deciding what is true in it. That is every agent that acts on what a user asserts. Hobson splits the job. Nova writes. Strands Decider 2B, which cannot write a sentence, decides what is true. It cannot be talked into anything, because it cannot talk.",
    "slide": "title"
   },
   {
    "id": "s02_agenda",
    "kind": "slide",
    "slide": "agenda",
-   "caption": "Four things: a world nobody wrote, an honest turn, a bluff, and the measurements.",
-   "vo": "Four things. A world nobody wrote. One honest turn. Then a bluff. Then what it measures like against the obvious alternative."
+   "vo": "Four things: a world nobody wrote, an honest turn, a bluff, the measurements. Then where this goes outside a game."
   },
   {
    "id": "s04_questions",
@@ -43,45 +41,39 @@
     "Every answer carries a confidence.",
     "Under 60%, Decider says \"not sure\" and Nova takes that call."
    ],
-   "caption": "The ledger is the story's only memory. Decider checks the player, and the narrator, against it.",
-   "vo": "Every turn Decider answers these, against the ledger, which is the story's only memory. What you tried. Whether each claim you made is true so far. Whether you hold what you named. Which outcome follows. And whether Nova's own paragraph keeps to the facts. Under sixty percent sure, it says so and Nova takes that call.",
+   "vo": "This is what a decision model is for. Not prose: closed questions with a confidence on each. Five a turn. What did you try. Is each claim true so far. Do you hold what you named. Which outcome follows. And does Nova's paragraph keep to the facts. The record is the story's only memory, and under sixty percent sure, Decider says so and hands that call to Nova.",
    "slide": "questions"
   },
   {
    "id": "t00_open",
    "kind": "clip",
    "turn": 0,
-   "caption": "A premise typed into the box. Nova builds the world from it; the ledger starts with the facts Nova chose.",
-   "vo": "I type a premise: a lighthouse on the Kerala coast, nineteen sixty-two, the keeper's niece with a lamp and an unread letter. Nova builds the world from that. The ledger holds the only facts that exist so far."
+   "vo": "Nothing is written in advance. I type a premise, and Nova builds the place and the opening facts. Type a payments outage or a generation ship instead, and it does the same. We ran both."
   },
   {
    "id": "t01",
    "kind": "clip",
    "turn": 1,
    "action": "I set the lamp down and finally open the letter",
-   "caption": "Turn 1. A fair action: the ledger gives me a lamp and a letter. Decider confirms both claims, and the letter gets read.",
-   "vo": "Turn one. I open the letter. Nova extracts what that relies on: a lamp, a letter. Decider checks both against the ledger: yes, and yes. The letter gets read, and that goes into the ledger."
+   "vo": "An honest turn. I open the letter. Nova extracts what it leans on: a lamp, a letter. Both are in the record, so both pass, and what happens is written down."
   },
   {
    "id": "t02",
    "kind": "clip",
    "turn": 2,
    "action": "I use the brass key my uncle gave me to open the locked cabinet by the lamp",
-   "caption": "Turn 2, the bluff. No key, no uncle, no cabinet exist anywhere in this story.",
-   "vo": "Turn two, the bluff. The brass key my uncle gave me, a locked cabinet. None of it exists anywhere in this story."
+   "vo": "Now the bluff. A brass key my uncle gave me, a locked cabinet. None of it exists anywhere in this story."
   },
   {
    "id": "t02_panel",
    "kind": "panel",
    "turn": 2,
-   "caption": "Refused. Every claim checked against the record, and nothing from this turn recorded. Nova Lite as referee believed the key in 3 runs out of 3.",
-   "vo": "Hobson refuses the turn. Each claim the action leaned on is checked against the record and found missing, around eighty percent sure, and the record below it does not change: nothing from this turn is written down. With Nova Lite as the referee instead, the key was believed in three runs out of three, and once the cabinet swung open."
+   "vo": "Refused. Every claim checked against the record and found missing, around eighty percent sure. And the record underneath does not move, so the next turn cannot build on it. With Nova Lite refereeing instead, the key was believed in two runs out of three."
   },
   {
    "id": "s90_results",
    "kind": "results",
-   "caption": "The same script, two referees, three runs each",
-   "vo": "The same script, two referees, three runs each. Decider refused eleven of the twenty-two claims I made; Nova Lite, doing the identical job from the identical state, refused eight of twenty-four, and believed the brass key in two runs of three. Ruling time is a wash and Decider's share costs nothing. Honestly: on the open picks it is often not sure, and says so. On yes or no against the record, it is the one you want.",
+   "vo": "Same script, two referees, three runs each. Decider refused eleven of twenty-two player claims; Nova Lite, eight of twenty-four. The brass-key bluff: Decider refused it three times out of three, Nova Lite believed the key in two. Same ruling time, Decider's share under two seconds, at no API cost. On open picks Decider is often not sure, and says so. On yes or no against a record, it is the one you want.",
    "rows": [
     [
      "",
@@ -113,7 +105,8 @@
     "Decider cannot be talked into anything, and says \"not sure\" when it is.",
     "Nova writes, proposes, and takes the open calls. results/md/referee_compare.md"
    ],
-   "slide": "results"
+   "slide": "results",
+   "title": "Two referees, three runs each"
   },
   {
    "id": "s99_end",
@@ -124,8 +117,7 @@
     "Strands Decider 2B on the Mac \u00b7 Amazon Nova Lite and Pro on Amazon Bedrock",
     "Decision pattern: #guardrails. The ledger guard is one typed question and ten lines of wiring, reusable anywhere a generator is allowed to act on what a user asserts."
    ],
-   "caption": "github.com/Felina14/hobson \u00b7 #strands-decider-2b #guardrails",
-   "vo": "Code, the comparison and every run's log are in the repo, with the ledger guard as a Strands intervention you can drop into an agent of your own. Thanks for watching.",
+   "vo": "Which is the useful part, and it is not about games. Any agent acting on what a user tells it has this problem: refunds, claims, access, support. So the guard ships on its own, as a Strands intervention handler, with a refund desk that refuses an order never delivered and asks a human when unsure. The pattern is guardrails.",
    "slide": "end"
   }
  ],

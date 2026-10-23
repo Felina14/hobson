@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Assemble the Hobson demo: slides + recorded clips + panel zooms + Polly voice-over + burned captions.
+"""Assemble the Hobson demo: slides + recorded clips + panel zooms + Kokoro voice-over. No burned captions.
 
 Inputs (all under demo/):
   narration.json         scenes, captions, VO text
@@ -17,7 +17,7 @@ import slides as SL
 HERE = os.path.dirname(os.path.abspath(__file__))
 REC, VO, TMP = f"{HERE}/rec", f"{HERE}/vo", f"{HERE}/_build"
 shutil.rmtree(TMP, ignore_errors=True); os.makedirs(TMP)
-W, H, CAP_H = 1280, 800, 96
+W, H, CAP_H = 1280, 800, 0   # no burned-in captions: the voice carries it
 BG = (16, 17, 20); FG = (232, 232, 226); DIM = (140, 142, 138); GREEN = (104, 196, 120); AMBER = (236, 171, 70); BLUE = (110, 170, 240)
 BGHEX = "0x101114"
 
@@ -41,13 +41,6 @@ def dur(p):
 def run(cmd):
     subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
 
-def caption_png(text, path):
-    im = Image.new("RGBA", (W, CAP_H), (30, 32, 38, 255)); d = ImageDraw.Draw(im)
-    d.line([0, 0, W, 0], fill=(60, 62, 70, 255), width=2)
-    for j, c in enumerate(textwrap.wrap(text, 96)[:3]):
-        d.text((32, 14 + j * 27), c, fill=(245, 240, 225, 255), font=FCAP)
-    im.save(path)
-
 def slide_png(s, path):
     im = Image.new("RGB", (W, H), BG); d = ImageDraw.Draw(im)
     y = 120
@@ -62,7 +55,7 @@ def slide_png(s, path):
 
 def results_png(path, s=None):
     im = Image.new("RGB", (W, H), BG); d = ImageDraw.Draw(im)
-    d.text((80, 70), (s or {}).get("caption", "Same five turns, two referees, three runs each"), font=font("monob", 34), fill=GREEN)
+    d.text((80, 70), (s or {}).get("title", "Two referees, three runs each"), font=font("monob", 34), fill=GREEN)
     rows = (s or {}).get("rows") or [("", "Decider 2B referee", "Nova Lite referee")]
     fsm = font("mono", 20); fsb = font("monob", 20)
     y = 160
@@ -77,28 +70,28 @@ def results_png(path, s=None):
     d.text((80, y + 40), "github.com/Felina14/hobson", font=FM, fill=BLUE)
     im.save(path)
 
-def still_segment(png, vo, cap_png, out, min_len=None):
+def still_segment(png, vo, out, min_len=None):
     """A still image shown for the VO length (+0.8 s), caption bar at the bottom."""
-    length = max(dur(vo) + 0.35, min_len or 0)
-    run(["ffmpeg", "-y", "-loop", "1", "-framerate", "24", "-i", png, "-i", vo, "-i", cap_png,
-         "-filter_complex", f"[0:v]scale={W}:{H-CAP_H}:force_original_aspect_ratio=decrease:force_divisible_by=2:flags=lanczos,pad={W}:{H}:(ow-iw)/2:0:color={BGHEX}[v0];[v0][2:v]overlay=0:{H-CAP_H}[v];[1:a]apad[a]",
+    length = max(dur(vo) + 0.12, min_len or 0)
+    run(["ffmpeg", "-y", "-loop", "1", "-framerate", "24", "-i", png, "-i", vo,
+         "-filter_complex", f"[0:v]scale={W}:{H}:force_original_aspect_ratio=decrease:force_divisible_by=2:flags=lanczos,pad={W}:{H}:(ow-iw)/2:(oh-ih)/2:color={BGHEX}[v];[1:a]apad[a]",
          "-map", "[v]", "-map", "[a]", "-t", f"{length:.3f}", "-r", "24", "-c:v", "libx264", "-crf", "20", "-pix_fmt", "yuv420p", "-c:a", "aac", "-ar", "48000", out])
 
-def clip_segment(start, end, vo, cap_png, out):
+def clip_segment(start, end, vo, out):
     """Cut [start,end] of the recording; freeze the last frame if the VO runs longer."""
     clip_len = end - start
-    voice = dur(vo) + 0.5
+    voice = dur(vo) + 0.3
     # A turn that waited on a model runs longer than the line spoken over it. Rather than hold a
     # frozen screen, the clip is gently sped up to the narration, never past 1.8x.
-    target = max(voice, clip_len / 1.8)
+    target = max(voice, clip_len / 2.6)
     speed = max(1.0, clip_len / target)
     length = max(voice, clip_len / speed)
     pad = max(0.0, length - clip_len / speed)
-    run(["ffmpeg", "-y", "-ss", f"{start:.3f}", "-to", f"{end:.3f}", "-i", f"{REC}/run.webm", "-i", vo, "-i", cap_png,
+    run(["ffmpeg", "-y", "-ss", f"{start:.3f}", "-to", f"{end:.3f}", "-i", f"{REC}/run.webm", "-i", vo,
          "-filter_complex",
-         f"[0:v]setpts=PTS/{speed:.4f},scale={W}:{H-CAP_H}:force_original_aspect_ratio=decrease:"
-         f"force_divisible_by=2:flags=lanczos,pad={W}:{H}:(ow-iw)/2:0:color={BGHEX},"
-         f"tpad=stop_mode=clone:stop_duration={pad:.3f}[v0];[v0][2:v]overlay=0:{H-CAP_H}[v];[1:a]apad[a]",
+         f"[0:v]setpts=PTS/{speed:.4f},scale={W}:{H}:force_original_aspect_ratio=decrease:"
+         f"force_divisible_by=2:flags=lanczos,pad={W}:{H}:(ow-iw)/2:(oh-ih)/2:color={BGHEX},"
+         f"tpad=stop_mode=clone:stop_duration={pad:.3f}[v];[1:a]apad[a]",
          "-map", "[v]", "-map", "[a]", "-t", f"{length:.3f}", "-r", "24", "-c:v", "libx264", "-crf", "20",
          "-pix_fmt", "yuv420p", "-c:a", "aac", "-ar", "48000", out])
 
@@ -134,9 +127,8 @@ def mark(name, turn):
 
 parts = []
 for i, s in enumerate(narr["scenes"]):
-    sid = s["id"]; vo = f"{VO}/{sid}.mp3"; cap = f"{TMP}/{sid}_cap.png"; out = f"{TMP}/{i:02d}_{sid}.mp4"
+    sid = s["id"]; vo = f"{VO}/{sid}.mp3"; out = f"{TMP}/{i:02d}_{sid}.mp4"
     if not os.path.exists(vo): sys.exit(f"missing voice-over {vo}; run make_vo.sh first")
-    caption_png(s["caption"], cap)
     k = s["kind"]
     if k in ("slide", "results"):
         png = f"{TMP}/{sid}.png"
@@ -147,17 +139,17 @@ for i, s in enumerate(narr["scenes"]):
             results_png(png, s)
         else:
             slide_png(s, png)
-        still_segment(png, vo, cap, out)
+        still_segment(png, vo, out)
     elif k == "clip":
         n = s["turn"]
-        if STILLS: still_segment(f"{REC}/t0{n}_full.png", vo, cap, out)
-        elif n == 0: clip_segment(mark("open_start", 0), mark("open_end", 0), vo, cap, out)
-        else: clip_segment(mark("type_start", n), mark("hold_end", n), vo, cap, out)
+        if STILLS: still_segment(f"{REC}/t0{n}_full.png", vo, out)
+        elif n == 0: clip_segment(mark("open_start", 0), mark("open_end", 0), vo, out)
+        else: clip_segment(mark("type_start", n), mark("hold_end", n), vo, out)
     elif k == "panel":
-        still_segment(f"{REC}/t0{s['turn']}_panel.png", vo, cap, out)
+        still_segment(f"{REC}/t0{s['turn']}_panel.png", vo, out)
     elif k == "drafts":
-        if STILLS: still_segment(f"{REC}/t05_drafts.png", vo, cap, out)
-        else: clip_segment(mark("drafts_start", 5), mark("drafts_end", 5), vo, cap, out)
+        if STILLS: still_segment(f"{REC}/t05_drafts.png", vo, out)
+        else: clip_segment(mark("drafts_start", 5), mark("drafts_end", 5), vo, out)
     parts.append(out); print(f"{sid:<14} {dur(out):6.1f}s")
 
 with open(f"{TMP}/list.txt", "w") as f:
