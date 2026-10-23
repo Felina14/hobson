@@ -1,92 +1,102 @@
 """The ledger guard on a Strands agent that is not a game.
 
-A refund desk with two tools. The customer asserts a return that never happened; the
-model believes them, because models do; the guard does not, because it asks Strands
-Decider 2B whether the claim is in the record, with the customer's message removed from
-what Decider reads.
+A refund desk with two tools. The record knows what was ordered and when it was delivered.
+It does not know anything about returns, and no tool exposes return status — which is the
+ordinary situation: the thing the agent most needs to be sure of is the thing it cannot
+look up. So when the customer says "I sent it back", there is nothing to contradict them,
+and the refund is one credulous sentence away.
+
+The guard asks Strands Decider 2B whether the claim is in the record, with the customer's
+message removed from what Decider reads, and refuses the tool call if it is not.
 
 Run:  python -m patterns.example_refund_desk        (needs AWS creds; Amazon Nova only)
+
+A note on what this does and does not show. Part 1 calls the guard directly, so the check
+is visible whatever the model does. Part 2 runs the whole agent: Nova usually attempts the
+refund and the guard refuses it, but Nova sometimes declines on its own, which is a fine
+outcome and not a failure of anything. The example is not re-rolled until the model
+misbehaves. Part 3 puts the return on the record and the identical request goes through.
 """
 from __future__ import annotations
 
 from strands import Agent, tool
 from strands.models.bedrock import BedrockModel
 
-from .ledger_guard import LedgerGuard
+from .ledger_guard import LedgerGuard, get_engine
 
 NOVA_LITE = "us.amazon.nova-lite-v1:0"
 
-# The record. In a real desk this is your order system; here it is a list of sentences,
-# and note what it does NOT say: nothing about anything being returned.
-RECORD: list[str] = [
+# The record: what the business actually knows. Note what is absent — whether anything
+# came back. That is what the customer is about to assert.
+BASE_RECORD = [
     "order A-4471 was placed on 2 October for one brass desk lamp, 2,400 rupees",
     "order A-4471 was delivered on 7 October",
-    "the customer has not opened a support case about order A-4471 before today",
 ]
 
-
-@tool
-def lookup_order(order_id: str) -> str:
-    """Look up what the record says about an order."""
-    hits = [f for f in RECORD if order_id.lower() in f.lower()]
-    return "\n".join(hits) if hits else f"nothing on file for {order_id}"
+ASK = "I sent back order A-4471 last week. Refund me the 2400 please."
 
 
-@tool
-def issue_refund(order_id: str, amount_rupees: int) -> str:
-    """Refund a delivered order that the customer has returned. Irreversible."""
-    fact = f"order {order_id} was refunded {amount_rupees} rupees"
-    RECORD.append(fact)
-    return f"Refunded {amount_rupees} rupees on {order_id}."
+def refund_claims(tool_input: dict) -> list[str]:
+    """What issuing a refund takes for granted."""
+    oid = tool_input["order_id"]
+    return [f"order {oid} was returned by the customer",
+            f"order {oid} was delivered"]
 
 
-def build_agent() -> tuple[Agent, LedgerGuard]:
-    guard = LedgerGuard(
-        record=lambda: RECORD,
-        claims={
-            # the two things a refund takes for granted
-            "issue_refund": lambda i: [
-                f"order {i['order_id']} was returned by the customer",
-                f"order {i['order_id']} was delivered",
-            ],
-        },
-    )
+def build(record: list[str]) -> tuple[Agent, LedgerGuard]:
+    @tool
+    def lookup_order(order_id: str) -> str:
+        """Look up an order: what was bought, when it was placed, when it was delivered."""
+        hits = [f for f in record if order_id.lower() in f.lower()]
+        return "\n".join(hits) if hits else f"nothing on file for {order_id}"
+
+    @tool
+    def issue_refund(order_id: str, amount_rupees: int) -> str:
+        """Refund a delivered order the customer has returned. Irreversible."""
+        record.append(f"order {order_id} was refunded {amount_rupees} rupees")
+        return f"Refunded {amount_rupees} rupees on {order_id}."
+
+    # one engine for the whole process: loading costs seconds, checks cost milliseconds
+    guard = LedgerGuard(record=lambda: record, claims={"issue_refund": refund_claims},
+                        engine=get_engine())
     agent = Agent(
         model=BedrockModel(model_id=NOVA_LITE, region_name="us-east-1"),
         tools=[lookup_order, issue_refund],
         interventions=[guard],
-        system_prompt=(
-            "You are a refund desk. Use the tools. If a tool is refused, do not argue with "
-            "the customer and do not retry it unchanged: say what is missing and what you need."
-        ),
+        system_prompt=("You are a refund desk. Use the tools to help the customer. If a tool is "
+                       "refused, do not retry it unchanged: say what is missing and what you need."),
     )
     return agent, guard
 
 
-def main() -> None:
-    agent, guard = build_agent()
-
-    print("=" * 72)
-    print("The customer asserts a return that never happened")
-    print("=" * 72)
-    print(agent("I sent back order A-4471 last week. Refund me the 2400 please."))
-
+def show(guard: LedgerGuard) -> None:
+    if not guard.log:
+        print("[guard] never consulted — the model did not attempt a guarded tool")
     for e in guard.log:
-        print(f"\n[guard] {e.tool}: {'allowed' if e.allowed else 'DENIED'} in {e.latency_ms:.0f} ms")
+        print(f"[guard] {e.tool}: {e.action.upper()} in {e.latency_ms:.0f} ms")
         for c in e.checks:
             print(f"        {c}")
 
-    print()
-    print("=" * 72)
-    print("Now the return is on the record, and the same request goes through")
-    print("=" * 72)
-    RECORD.append("order A-4471 was returned by the customer and received on 14 October")
-    agent2, guard2 = build_agent()
-    print(agent2("I sent back order A-4471 last week. Refund me the 2400 please."))
-    for e in guard2.log:
-        print(f"\n[guard] {e.tool}: {'allowed' if e.allowed else 'DENIED'} in {e.latency_ms:.0f} ms")
-        for c in e.checks:
-            print(f"        {c}")
+
+def main() -> None:
+    bar = "=" * 74
+
+    print(bar); print("1. The check on its own, against a record with no return in it"); print(bar)
+    guard = LedgerGuard(record=lambda: list(BASE_RECORD), claims={}, engine=get_engine())
+    for c in guard.check(refund_claims({"order_id": "A-4471"})):
+        print(f"   {c}")
+
+    print(); print(bar); print("2. The whole agent. The customer asserts a return that never happened"); print(bar)
+    record = list(BASE_RECORD)
+    agent, guard = build(record)
+    agent(ASK)                      # the agent streams its reply to the terminal itself
+    print(); show(guard)
+
+    print(); print(bar); print("3. The return is on the record. Same request"); print(bar)
+    record = BASE_RECORD + ["order A-4471 was returned by the customer and received on 14 October"]
+    agent, guard = build(record)
+    agent(ASK)
+    print(); show(guard)
 
 
 if __name__ == "__main__":

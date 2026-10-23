@@ -43,15 +43,27 @@ with one question per claim, around 300-600 ms on an M-series Mac, and costs not
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
+import time
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
 from strands import InterventionHandler
-from strands.interventions import Deny, Proceed
+from strands.interventions import Confirm, Deny, Proceed
 from strands_decider.infer import load_engine
 from strands_decider.schema import NoulQuestion
 
 CHECKPOINT = "StrandsAgents/strands-decider-2B-hobson-v19"
+
+_ENGINES: dict[tuple[str, str], Any] = {}
+
+
+def get_engine(checkpoint: str = CHECKPOINT, device: str = "mps") -> Any:
+    """One engine per (checkpoint, device) per process. Loading takes a few seconds; every
+    guard built afterwards reuses it, so a check costs a few hundred milliseconds."""
+    key = (checkpoint, device)
+    if key not in _ENGINES:
+        _ENGINES[key] = load_engine(checkpoint, device=device)
+    return _ENGINES[key]
 
 QUESTION = "Has the following been established earlier in this record: {claim}?"
 CRITERIA = {"true": "the record says so", "false": "the record does not say so"}
@@ -62,13 +74,14 @@ class Check:
     """One claim, judged against the record."""
 
     claim: str
-    established: bool
+    established: bool          # Decider's answer, whatever its confidence
     confidence: float
-    unsure: bool
+    unsure: bool               # below the threshold: the answer is not worth acting on
 
     @property
-    def blocks(self) -> bool:
-        return not self.established
+    def refused(self) -> bool:
+        """Decider is confident this is not in the record."""
+        return not self.established and not self.unsure
 
     def __str__(self) -> str:
         verdict = "established" if self.established else "NOT established"
@@ -81,8 +94,12 @@ class GuardEvent:
 
     tool: str
     checks: list[Check]
-    allowed: bool
+    action: str                # "allowed" | "denied" | "confirm"
     latency_ms: float = 0.0
+
+    @property
+    def allowed(self) -> bool:
+        return self.action == "allowed"
 
 
 class LedgerGuard(InterventionHandler):
@@ -93,7 +110,9 @@ class LedgerGuard(InterventionHandler):
         claims: {tool name: callable(tool input) -> [statements the call presupposes]}.
         threshold: below this confidence a verdict counts as unsure (Decider's own
             calibration; 0.6 is the value used throughout this repository).
-        on_unsure: "deny" (default, fail closed) or "allow".
+        on_unsure: what to do when Decider's confidence is below the threshold —
+            "deny" (default, fail closed), "confirm" (hand it to a human via the
+            framework's Confirm action), or "allow".
         engine / checkpoint / device: supply a loaded engine, or let it load one lazily.
     """
 
@@ -105,7 +124,7 @@ class LedgerGuard(InterventionHandler):
         claims: Mapping[str, Callable[[Any], Sequence[str]]],
         *,
         threshold: float = 0.6,
-        on_unsure: Literal["deny", "allow"] = "deny",
+        on_unsure: Literal["deny", "confirm", "allow"] = "deny",
         engine: Any = None,
         checkpoint: str = CHECKPOINT,
         device: str = "mps",
@@ -126,7 +145,7 @@ class LedgerGuard(InterventionHandler):
     @property
     def engine(self) -> Any:
         if self._engine is None:
-            self._engine = load_engine(self._checkpoint, device=self._device)
+            self._engine = get_engine(self._checkpoint, self._device)
         return self._engine
 
     def state(self) -> str:
@@ -148,11 +167,10 @@ class LedgerGuard(InterventionHandler):
             p = float(response.answers[f"c{i}"].noul)
             confidence = abs(2 * p - 1)          # noul confidence, as everywhere else here
             unsure = confidence < self.threshold
-            established = p >= 0.5 and not (unsure and self.on_unsure == "deny")
-            out.append(Check(claim, established, confidence, unsure))
+            out.append(Check(claim, p >= 0.5, confidence, unsure))
         return out
 
-    def before_tool_call(self, event: Any, **kwargs: Any) -> Proceed | Deny:
+    def before_tool_call(self, event: Any, **kwargs: Any) -> Proceed | Deny | Confirm:
         tool = event.tool_use["name"]
         extract = self.claims.get(tool)
         if extract is None:
@@ -161,16 +179,29 @@ class LedgerGuard(InterventionHandler):
         if not claims:
             return Proceed()
 
-        import time
-
         t0 = time.perf_counter()
         checks = self.check(claims)
         ms = (time.perf_counter() - t0) * 1000
-        blocked = [c for c in checks if c.blocks]
-        self.log.append(GuardEvent(tool, checks, not blocked, ms))
-        if not blocked:
+
+        refused = [c for c in checks if c.refused]
+        shaky = [c for c in checks if c.unsure]
+
+        if refused:
+            action = "denied"
+        elif shaky:
+            action = {"deny": "denied", "confirm": "confirm", "allow": "allowed"}[self.on_unsure]
+        else:
+            action = "allowed"
+        self.log.append(GuardEvent(tool, checks, action, ms))
+
+        if action == "allowed":
             return Proceed()
-        why = "; ".join(str(c) for c in blocked)
+        why = "; ".join(str(c) for c in (refused or shaky))
+        if action == "confirm":
+            return Confirm(
+                prompt=f"{tool}: the record does not clearly establish {why}. Run it anyway?",
+                reason="ledger-guard: below the confidence threshold",
+            )
         return Deny(
             reason=(
                 f"{tool} was not run. The record does not establish: {why}. "

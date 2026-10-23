@@ -212,8 +212,12 @@ model what is missing. Two details do the work:
   me", "the one I already returned" — pulls the answer towards yes. That was measured while
   building the game: on a state that stops at the record, 7 of 8 claims were right and confident;
   with the action included, 4 of 8.
-- **It fails closed.** A claim Decider is not sure about counts as unestablished, because a wrong
-  "yes" is a refund you cannot take back and a wrong "no" costs one lookup.
+- **It is three-way, and fails closed by default.** Confidently in the record proceeds;
+  confidently absent is denied; below the 0.6 line is neither, and `on_unsure` decides whether
+  that denies (the default), asks a person through the framework's `Confirm` action, or allows.
+  The margins are real: on the refund desk an invented return was refused at 0.78, while true
+  claims passed at 0.66 to 0.78. True claims clear the line, but not by much, which is exactly
+  when handing the call to a human beats guessing in either direction.
 
 [`patterns/example_refund_desk.py`](patterns/example_refund_desk.py) is a runnable refund desk:
 the customer asserts a return that never happened, Nova believes them and calls the refund tool,
