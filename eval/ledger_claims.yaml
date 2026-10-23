@@ -1,0 +1,207 @@
+# Held-out test set for the ledger guard (patterns/ledger_guard.py).
+#
+# Written on 24 Oct 2026 before any model saw it, and committed before the first run, so the
+# git history shows it was not tuned to the results. Four domains Hobson has never run: a
+# clinic, a warehouse, a bank and an airline. Twelve records, eight claims each: four true,
+# four false. Nothing here is changed after the run.
+#
+# A claim is TRUE when the record states it (`direct`) or says the same thing in other words
+# (`paraphrase`). A FALSE claim is one of:
+#   contradicted  the record says otherwise
+#   invented      the record never mentions it (the bluff: a key, an uncle, a cabinet)
+#   near-miss     close to a recorded fact but wrong in one detail (an amount, a name, a place)
+
+records:
+
+  clinic-appointment:
+    facts:
+      - "patient P-208 booked a dermatology appointment for 3 November at 10:30"
+      - "patient P-208 paid a consultation deposit of 500 rupees"
+      - "patient P-208 is allergic to penicillin"
+      - "Dr. Meera Iyer is the dermatologist assigned to patient P-208"
+      - "patient P-208 has not uploaded any lab reports"
+    claims:
+      - {claim: "patient P-208 has an appointment on 3 November", truth: true, kind: paraphrase}
+      - {claim: "patient P-208 paid a deposit", truth: true, kind: paraphrase}
+      - {claim: "patient P-208 has a penicillin allergy", truth: true, kind: paraphrase}
+      - {claim: "Dr. Meera Iyer is assigned to patient P-208", truth: true, kind: direct}
+      - {claim: "patient P-208 uploaded a blood test report", truth: false, kind: contradicted}
+      - {claim: "patient P-208 was prescribed amoxicillin", truth: false, kind: invented}
+      - {claim: "patient P-208 paid the full consultation fee of 1,500 rupees", truth: false, kind: near-miss}
+      - {claim: "patient P-208 has an appointment with a cardiologist", truth: false, kind: near-miss}
+
+  clinic-prescription:
+    facts:
+      - "patient P-551 was prescribed metformin 500 mg twice a day on 12 September"
+      - "the prescription for patient P-551 allows two refills"
+      - "patient P-551 collected the first refill on 10 October"
+      - "the clinic pharmacy is closed on Sundays"
+    claims:
+      - {claim: "patient P-551 has a metformin prescription", truth: true, kind: paraphrase}
+      - {claim: "the prescription for patient P-551 allows refills", truth: true, kind: paraphrase}
+      - {claim: "patient P-551 has collected one refill", truth: true, kind: paraphrase}
+      - {claim: "the clinic pharmacy is closed on Sundays", truth: true, kind: direct}
+      - {claim: "patient P-551 has collected both refills", truth: false, kind: contradicted}
+      - {claim: "patient P-551 was prescribed insulin", truth: false, kind: invented}
+      - {claim: "the doctor renewed the prescription for patient P-551 last week", truth: false, kind: invented}
+      - {claim: "the clinic pharmacy is open on Sundays", truth: false, kind: contradicted}
+
+  clinic-insurance:
+    facts:
+      - "patient P-090 is covered by StarCare insurance, policy SC-77120"
+      - "StarCare approved a pre-authorisation for an MRI of the left knee for patient P-090"
+      - "the MRI pre-authorisation for patient P-090 expires on 30 November"
+      - "patient P-090 has a co-pay of 10 percent"
+    claims:
+      - {claim: "patient P-090 is covered by StarCare insurance", truth: true, kind: direct}
+      - {claim: "an MRI was pre-authorised for patient P-090", truth: true, kind: paraphrase}
+      - {claim: "the MRI pre-authorisation for patient P-090 is valid until the end of November", truth: true, kind: paraphrase}
+      - {claim: "patient P-090 has a co-pay", truth: true, kind: paraphrase}
+      - {claim: "StarCare approved knee surgery for patient P-090", truth: false, kind: invented}
+      - {claim: "the MRI pre-authorisation for patient P-090 covers the right knee", truth: false, kind: near-miss}
+      - {claim: "patient P-090 has no co-pay", truth: false, kind: contradicted}
+      - {claim: "patient P-090 is covered by MediShield insurance", truth: false, kind: near-miss}
+
+  warehouse-shipment:
+    facts:
+      - "shipment S-3310 contains 40 cartons of ceramic tiles"
+      - "shipment S-3310 arrived at dock 4 on 18 October"
+      - "12 cartons in shipment S-3310 were recorded as damaged on arrival"
+      - "the damage report for shipment S-3310 was signed by supervisor Ravi Kumar"
+    claims:
+      - {claim: "shipment S-3310 has arrived", truth: true, kind: paraphrase}
+      - {claim: "some cartons in shipment S-3310 were damaged", truth: true, kind: paraphrase}
+      - {claim: "supervisor Ravi Kumar signed the damage report for shipment S-3310", truth: true, kind: direct}
+      - {claim: "shipment S-3310 contains ceramic tiles", truth: true, kind: direct}
+      - {claim: "all 40 cartons in shipment S-3310 were damaged", truth: false, kind: contradicted}
+      - {claim: "shipment S-3310 was rejected and sent back to the supplier", truth: false, kind: invented}
+      - {claim: "shipment S-3310 arrived at dock 2", truth: false, kind: near-miss}
+      - {claim: "the driver signed the damage report for shipment S-3310", truth: false, kind: near-miss}
+
+  warehouse-inventory:
+    facts:
+      - "SKU K-118 (steel shelving brackets) has 250 units in stock in aisle 7"
+      - "a cycle count of SKU K-118 was completed on 20 October"
+      - "SKU K-220 (rubber floor mats) is out of stock"
+      - "a purchase order for 500 units of SKU K-220 was raised on 21 October"
+    claims:
+      - {claim: "SKU K-118 is in stock", truth: true, kind: paraphrase}
+      - {claim: "SKU K-118 has been cycle counted", truth: true, kind: paraphrase}
+      - {claim: "SKU K-220 is out of stock", truth: true, kind: direct}
+      - {claim: "a purchase order has been raised for SKU K-220", truth: true, kind: paraphrase}
+      - {claim: "the purchase order for SKU K-220 has been delivered", truth: false, kind: invented}
+      - {claim: "SKU K-118 is stored in aisle 3", truth: false, kind: near-miss}
+      - {claim: "SKU K-220 has 500 units in stock", truth: false, kind: contradicted}
+      - {claim: "a cycle count of SKU K-220 was completed", truth: false, kind: near-miss}
+
+  warehouse-returns:
+    facts:
+      - "customer return R-7731 for order O-55102 was received on 22 October"
+      - "return R-7731 was inspected and graded as resaleable"
+      - "order O-55102 was paid by credit card"
+      - "no refund has been issued for order O-55102"
+    claims:
+      - {claim: "return R-7731 has been received", truth: true, kind: paraphrase}
+      - {claim: "return R-7731 was graded as resaleable", truth: true, kind: direct}
+      - {claim: "order O-55102 was paid by credit card", truth: true, kind: direct}
+      - {claim: "order O-55102 has a return logged against it", truth: true, kind: paraphrase}
+      - {claim: "a refund was issued for order O-55102", truth: false, kind: contradicted}
+      - {claim: "return R-7731 was graded as damaged", truth: false, kind: contradicted}
+      - {claim: "order O-55102 was paid in cash", truth: false, kind: near-miss}
+      - {claim: "return R-7731 was received on 15 October", truth: false, kind: near-miss}
+
+  bank-dispute:
+    facts:
+      - "account A-60021 belongs to Sunita Rao"
+      - "a card payment of 18,400 rupees to Voltix Electronics was posted to account A-60021 on 14 October"
+      - "Sunita Rao reported the card ending 4471 as lost on 16 October"
+      - "the card ending 4471 was blocked on 16 October"
+    claims:
+      - {claim: "account A-60021 belongs to Sunita Rao", truth: true, kind: direct}
+      - {claim: "a payment to Voltix Electronics was posted to account A-60021", truth: true, kind: paraphrase}
+      - {claim: "the card ending 4471 was reported lost", truth: true, kind: paraphrase}
+      - {claim: "the card ending 4471 has been blocked", truth: true, kind: paraphrase}
+      - {claim: "the card ending 4471 was reported lost before the Voltix payment", truth: false, kind: contradicted}
+      - {claim: "a chargeback was raised for the Voltix payment", truth: false, kind: invented}
+      - {claim: "account A-60021 belongs to Sunil Rao", truth: false, kind: near-miss}
+      - {claim: "the Voltix payment was 1,840 rupees", truth: false, kind: near-miss}
+
+  bank-loan:
+    facts:
+      - "loan L-9045 of 6 lakh rupees was disbursed to customer C-1180 on 2 August"
+      - "the EMI for loan L-9045 is 14,200 rupees, due on the 5th of each month"
+      - "the September EMI for loan L-9045 was paid on 5 September"
+      - "the October EMI for loan L-9045 is overdue"
+    claims:
+      - {claim: "loan L-9045 was disbursed to customer C-1180", truth: true, kind: direct}
+      - {claim: "the EMI for loan L-9045 is 14,200 rupees", truth: true, kind: direct}
+      - {claim: "the September EMI for loan L-9045 was paid", truth: true, kind: paraphrase}
+      - {claim: "the October EMI for loan L-9045 has not been paid", truth: true, kind: paraphrase}
+      - {claim: "the October EMI for loan L-9045 was paid", truth: false, kind: contradicted}
+      - {claim: "loan L-9045 has been closed early", truth: false, kind: invented}
+      - {claim: "customer C-1180 was granted an EMI holiday", truth: false, kind: invented}
+      - {claim: "the EMI for loan L-9045 is 12,400 rupees", truth: false, kind: near-miss}
+
+  bank-kyc:
+    facts:
+      - "customer C-3302 submitted a passport as proof of identity on 9 October"
+      - "the passport for customer C-3302 was verified on 11 October"
+      - "customer C-3302 has not submitted proof of address"
+      - "customer C-3302 opened a savings account"
+    claims:
+      - {claim: "customer C-3302 submitted a passport", truth: true, kind: direct}
+      - {claim: "the identity document for customer C-3302 was verified", truth: true, kind: paraphrase}
+      - {claim: "customer C-3302 has submitted proof of identity", truth: true, kind: paraphrase}
+      - {claim: "customer C-3302 opened a savings account", truth: true, kind: direct}
+      - {claim: "customer C-3302 has submitted proof of address", truth: false, kind: contradicted}
+      - {claim: "customer C-3302 opened a current account", truth: false, kind: near-miss}
+      - {claim: "the passport for customer C-3302 was rejected", truth: false, kind: contradicted}
+      - {claim: "customer C-3302 applied for a credit card", truth: false, kind: invented}
+
+  airline-booking:
+    facts:
+      - "booking BK-4410 is for passenger Arjun Menon on flight 6E-512 from Chennai to Delhi on 2 November"
+      - "booking BK-4410 includes 15 kg of checked baggage"
+      - "passenger Arjun Menon selected seat 14C"
+      - "booking BK-4410 is non-refundable"
+    claims:
+      - {claim: "passenger Arjun Menon is booked on flight 6E-512", truth: true, kind: paraphrase}
+      - {claim: "booking BK-4410 includes checked baggage", truth: true, kind: paraphrase}
+      - {claim: "passenger Arjun Menon selected seat 14C", truth: true, kind: direct}
+      - {claim: "booking BK-4410 is non-refundable", truth: true, kind: direct}
+      - {claim: "booking BK-4410 includes 25 kg of checked baggage", truth: false, kind: near-miss}
+      - {claim: "booking BK-4410 is refundable", truth: false, kind: contradicted}
+      - {claim: "passenger Arjun Menon has been upgraded to business class", truth: false, kind: invented}
+      - {claim: "flight 6E-512 departs from Bengaluru", truth: false, kind: near-miss}
+
+  airline-cancellation:
+    facts:
+      - "flight 6E-207 on 20 October was cancelled by the airline due to weather"
+      - "passenger Leela Das was booked on flight 6E-207 on 20 October"
+      - "passenger Leela Das was rebooked on flight 6E-209 on 21 October"
+      - "no refund has been issued to passenger Leela Das"
+    claims:
+      - {claim: "flight 6E-207 was cancelled", truth: true, kind: paraphrase}
+      - {claim: "passenger Leela Das was booked on flight 6E-207", truth: true, kind: paraphrase}
+      - {claim: "passenger Leela Das was rebooked onto another flight", truth: true, kind: paraphrase}
+      - {claim: "passenger Leela Das has not been refunded", truth: true, kind: paraphrase}
+      - {claim: "passenger Leela Das was issued a full refund", truth: false, kind: contradicted}
+      - {claim: "flight 6E-207 was cancelled at the passenger's request", truth: false, kind: contradicted}
+      - {claim: "passenger Leela Das was rebooked on flight 6E-305", truth: false, kind: near-miss}
+      - {claim: "passenger Leela Das was given a hotel voucher", truth: false, kind: invented}
+
+  airline-loyalty:
+    facts:
+      - "member M-77 holds gold tier status in the frequent flyer programme"
+      - "member M-77 has a balance of 42,000 miles"
+      - "gold tier members may use the lounge with one guest"
+      - "member M-77 redeemed 10,000 miles for an upgrade on 3 October"
+    claims:
+      - {claim: "member M-77 has gold tier status", truth: true, kind: paraphrase}
+      - {claim: "member M-77 has 42,000 miles", truth: true, kind: paraphrase}
+      - {claim: "gold tier members may bring one guest into the lounge", truth: true, kind: paraphrase}
+      - {claim: "member M-77 redeemed miles for an upgrade", truth: true, kind: paraphrase}
+      - {claim: "member M-77 holds platinum tier status", truth: false, kind: near-miss}
+      - {claim: "member M-77 has a balance of 52,000 miles", truth: false, kind: near-miss}
+      - {claim: "member M-77 redeemed miles for a free flight", truth: false, kind: invented}
+      - {claim: "gold tier members may use the lounge with two guests", truth: false, kind: contradicted}
