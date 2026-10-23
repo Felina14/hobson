@@ -1,4 +1,5 @@
 strands-decider
+strands-agents        # patterns/: the ledger guard as a Strands InterventionHandler
 boto3
 pyyaml
 rich

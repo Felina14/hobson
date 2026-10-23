@@ -183,6 +183,46 @@ locally and is counted at $0.
 - **Weak:** the editor. Pointwise scores sit in a narrow band and tie often, and the A/B pick
   disagreed with itself 7 times in 11.
 
+## The pattern on a Strands agent that is not a game
+
+The ledger guard is the piece worth lifting, so it also ships as a standalone
+`InterventionHandler` in [`patterns/ledger_guard.py`](patterns/ledger_guard.py) — one file,
+depending on nothing in this repository.
+
+```python
+from strands import Agent
+from patterns.ledger_guard import LedgerGuard
+
+guard = LedgerGuard(
+    record=lambda: RECORD,                      # the established facts, one sentence each
+    claims={"issue_refund": lambda i: [         # what this call takes for granted
+        f"order {i['order_id']} was returned by the customer",
+        f"order {i['order_id']} was delivered",
+    ]},
+)
+agent = Agent(model=..., tools=[lookup_order, issue_refund], interventions=[guard])
+```
+
+Before `issue_refund` runs, each statement goes to Decider as one `noul` against the record,
+and a statement the record does not support turns the call into a `Deny` whose reason tells the
+model what is missing. Two details do the work:
+
+- **The user's message is not in the state.** Decider reads the record and nothing else
+  (`LedgerGuard.state()`). With the message in, the user's own phrasing — "the key my uncle gave
+  me", "the one I already returned" — pulls the answer towards yes. That was measured while
+  building the game: on a state that stops at the record, 7 of 8 claims were right and confident;
+  with the action included, 4 of 8.
+- **It fails closed.** A claim Decider is not sure about counts as unestablished, because a wrong
+  "yes" is a refund you cannot take back and a wrong "no" costs one lookup.
+
+[`patterns/example_refund_desk.py`](patterns/example_refund_desk.py) is a runnable refund desk:
+the customer asserts a return that never happened, Nova believes them and calls the refund tool,
+and the guard refuses it — then the same request succeeds once the return is actually on the
+record. `python -m patterns.example_refund_desk`.
+
+It is the same check the game runs on the player, and the same one it runs on the narrator's own
+paragraphs. A record, and a model with no stake in the story being allowed to say what is in it.
+
 ## What this version replaced
 
 The first build (22 Oct, morning) had a hand-authored world: six scenes, prepared outcomes and a
@@ -236,6 +276,7 @@ hobson/
   state.py        Scene, World (premise + rules), Ledger (add/retire), Turn, state_text()
   decider_local.py, nova.py, base.py, mdlog.py   copied from decider-gauntlet
   compare.py      referee comparison report
+patterns/         the ledger guard as a standalone Strands InterventionHandler, + a refund-desk example
   web.py          FastAPI web view; static/ the page, visuals.js/.css, scenes/ (six line drawings)
 world/README.md   nothing is read from here any more; legacy/town.yaml is the first build's town
 demo/             demo turns, narration, voice-over, recorder and assembler for the video
