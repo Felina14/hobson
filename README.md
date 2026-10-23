@@ -360,6 +360,48 @@ flattering one.
 It is the same check the game runs on the player, and the same one it runs on the narrator's own
 paragraphs. A record, and a model with no stake in the story being allowed to say what is in it.
 
+### The guard on held-out claims
+
+Three refund-desk runs are anecdotes, so the guard was also tested on claims it had never seen:
+96 claims over 12 records in four domains Hobson never ran (a clinic, a warehouse, a bank, an
+airline). Half are true, stated directly or paraphrased. Half are false: contradicted by the
+record, invented, or a near-miss (one wrong name, amount or place). The set
+([`eval/ledger_claims.yaml`](eval/ledger_claims.yaml)) was committed and pushed before any model
+saw it. Each system was asked the same question on the same record. From
+[`results/md/ledger_guard_eval.md`](results/md/ledger_guard_eval.md)
+(`scripts/eval_ledger_guard.py`):
+
+| 96 claims (48 true, 48 false) | right | false claims let through | true claims refused | unsure | latency per claim | Nova cost per 100 claims |
+|---|---|---|---|---|---|---|
+| **Decider, record only (the guard)** | 95/96; **88/88 when sure** | **0/48** | 0/48 (2 held as unsure) | **8%** | 177 ms; 581 ms for a whole 8-claim record | $0 |
+| Decider, customer's sentence in the state | 90/96; 65/65 when sure | 0/48 | 0/48 | 32% | | $0 |
+| Nova Lite (×3 per claim) | 288/288 | 0/144 | 0/144 | n/a | 615 ms | $0.0010 |
+| Nova Pro (×3 per claim) | 285/288 | 3/144 | 0/144 | n/a | 665 ms | $0.0137 |
+| Nova Lite, customer's sentence in the state (×3) | 282/288 | 0/144 | 6/144 | n/a | 610 ms | $0.0011 |
+| Decider, Nova Lite on the unsure ones (the game's policy) | 96/96 | 0/48 | 0/48 | | | $0.0001 |
+
+What it shows, plainly:
+
+- **As a guard, Decider is safe on data it has never seen.** It let no false claim through. Every
+  answer it was sure of was right. It was unsure on 8 claims (8%) and said so, rather than
+  guessing; the guard refuses those. Its one wrong answer ("the card was reported lost *before*
+  the payment", which turns on the order of two dates) was among the unsure ones, so it was
+  refused, not believed.
+- **It is faster and free.** 177 ms per claim against Nova Lite's 615 ms, and about 73 ms per
+  claim when a whole record is checked in one call, which is what the guard does. It costs
+  nothing per call. It is also deterministic: a second pass gave identical probabilities on 96/96.
+- **Ask against the record alone, measured again.** Putting the customer's sentence into
+  Decider's state quadrupled the unsure rate, from 8% to 32%, on four domains it had never seen.
+- **It is not more accurate than Nova Lite here.** Nova Lite was perfect, and even with the
+  customer's sentence in front of it, it accepted no false claim. It refused six true ones
+  instead. These claims are plain single sentences, not persuasive bluffs, so this test does not
+  show an LLM being talked into anything. What Decider adds over Nova Lite here is speed, cost,
+  and a confidence that marks its own hard cases. Nova Pro was the one that let false claims
+  through (3).
+- **Where it was unsure:** bank records, near-miss names and amounts ("Sunil" for "Sunita", 1,840
+  for 18,400), and claims that turn on a count ("both refills") or the order of two dates. Warehouse and airline records
+  produced no unsure answers.
+
 ---
 
 ## What this version replaced
@@ -419,6 +461,8 @@ hobson/
   decider_local.py, nova.py, base.py, mdlog.py   copied from decider-gauntlet
   compare.py      referee comparison report
 patterns/         the ledger guard as a standalone Strands InterventionHandler, + a refund-desk example
+eval/             ledger_claims.yaml: the held-out claim set for the guard
+scripts/          eval_ledger_guard.py: Decider vs Nova on that set; legacy/probe_wording.py
 demo/             demo_turns.txt: the five scripted turns the referee comparison runs
 results/          rows (*.jsonl) and markdown (md/); legacy/ holds the first build's
 ```
