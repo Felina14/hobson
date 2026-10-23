@@ -23,7 +23,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 from .handlers import Continuity, Decision, Dice, Editor, Ledger, Ruling, ask_batch, load_questions
-from .handlers.continuity import checks_for
+from .handlers.continuity import checks_for, screen_facts
 from .narrator import Narrator
 from .state import ROOT, Ledger as LedgerState, Turn, state_text
 
@@ -102,6 +102,7 @@ class Game:
         # ("the brass key does not fit") even after the ruling says there is no key.
         missing = [d.detail for d in d1 if d.name == "grounds" and not d.value and d.via == "decider"]
         false_c = [d.detail for d in d1 if d.name == "ledger" and not d.value and d.via == "decider"]
+        absent = list(dict.fromkeys(missing + false_c))
         if missing or false_c:
             note = "(NOTE from the referee: "
             if missing: note += "the player does NOT have: " + "; ".join(missing) + ". "
@@ -116,7 +117,15 @@ class Game:
         if atype == "impossible":
             prepared = {"not-possible-here": {"effect": "That cannot be done here or with what the player holds; the attempt fails.", "danger": 0, "goto": None, "requires": None, "adds": []}}
         else:
-            prepared = n.propose_outcomes(state, atype, claim_lines)
+            prepared = n.propose_outcomes(state, atype, claim_lines, absent=absent)
+            if absent:
+                from .handlers.continuity import short_name
+                safe = {"it-is-not-there": {
+                    "effect": "There is no such thing here to act on: " + "; ".join(
+                        dict.fromkeys(short_name(a) for a in absent))
+                        + " does not exist. The player finds nothing, and nothing happens.",
+                    "danger": 0, "goto": None, "requires": None, "adds": []}}
+                prepared = {**safe, **prepared}      # offered first: option order moves the pick
         outcomes = {k: v["effect"] for k, v in prepared.items()}
         requires = {k: v["requires"] for k, v in prepared.items() if v.get("requires")}
         if len(outcomes) == 1:
@@ -199,15 +208,31 @@ class Game:
         kept = checks[0 if ed.value == "A" else 1]
         still_bad = bool(kept.value)
         what = ", ".join((kept.decider_value or {}).get("broke", [])) if isinstance(kept.decider_value, dict) else ""
+
+        # the ledger only learns from prose the guard accepted; then, on a contested turn, every
+        # remaining fact is screened so nothing the ledger calls absent can be written back in
+        proposed = list(adds) + ([] if still_bad else list(facts))
+        dropped = []
+        if absent and proposed:
+            if self.mode == "decider":
+                proposed, dropped, ms_f = screen_facts(
+                    self.continuity, lstate, absent, proposed,
+                    fallback=lambda d, text: self.narrator.fallback_ruling(d, text))
+                decider_ms += ms_f
+            else:
+                proposed, dropped = self.referee.screen_facts(lstate, absent, proposed)
+
         kept.detail = (f"still breaks {what or 'a rule'} after {rewrites} rewrites; its facts were NOT recorded" if still_bad
                        else (f"rewritten {'once' if rewrites == 1 else 'twice'}" if rewrites
                              else ("the other draft was dropped" if len(bad) == 1 else "")))
+        if dropped:
+            note = "; ".join(f'"{str(d)[:48]}" kept out of the ledger' for d in dropped[:2])
+            kept.detail = (kept.detail + " · " + note) if kept.detail else note
         decisions = decisions + [kept]
         if on_drafts:
             on_drafts({"A": pa, "B": pb}, ed)
 
-        # the ledger only learns from prose the guard accepted; the outcome's own facts always count
-        new = self.ledger.add(*adds, *([] if still_bad else facts))
+        new = self.ledger.add(*proposed)
         self.alert = self.world.trouble_arrives if dval >= 4 else ""
         opening = ""
         if goto:

@@ -50,6 +50,40 @@ def checks_for(decisions, met: bool, outcome: dict) -> list[tuple[str, str, bool
     return [("outcome", f"Does the PARAGRAPH show this happening: {outcome.get('effect')}?", True)]
 
 
+def short_name(x: str) -> str:
+    """'the player holds a brass key' / 'one brass key' -> 'a brass key'"""
+    x = re.sub(r"^(the player|you)\s+(claims?\s+to\s+)?(holds?|has|knows?|owns?|carries|carry)\s+", "", str(x).strip(), flags=re.I)
+    x = re.sub(r"^(one|a|an|the)\s+", "", x, flags=re.I)
+    return "a " + x.strip().rstrip(".")
+
+
+def screen_facts(handler, state, absent, facts, fallback=None):
+    """Last gate on the record: drop any fact that treats a thing the ledger says is absent as
+    real. Nova proposes the outcomes, so on a contested turn it can offer "the key does not fit"
+    and the accepted paragraph then writes the key into the ledger. One noul per candidate fact,
+    all in one Decider call. Returns (kept, dropped, latency_ms)."""
+    plain = [f for f in facts if not str(f).startswith("~")]
+    if not absent or not plain:
+        return list(facts), [], 0.0
+    what = "; ".join(dict.fromkeys(short_name(a) for a in absent))
+    qs = {f"f{i}": NoulQuestion(
+            instructions=f'None of these exist: {what}. Does this sentence mention or rely on any of them? '
+                         f'SENTENCE: "{f}"',
+            criteria={"true": "yes, the sentence mentions or relies on one of them",
+                      "false": "no, the sentence is about something else entirely"})
+          for i, f in enumerate(plain)}
+    resp, ms = handler.decider.ask_many(state, qs)
+    keep, drop = [], []
+    for i, f in enumerate(plain):
+        d = _noul("fact", resp, f"f{i}", ms, handler.threshold, "", detail=str(f)[:60])
+        if d.unsure and fallback:
+            fallback(d, f'{state}\n\nSENTENCE: "{f}"')
+        # fail closed: the record is the thing being protected, so a fact that is not clearly
+        # clear of the absent things does not get written
+        (drop if (d.value or d.unsure) else keep).append(f)
+    return keep + [f for f in facts if str(f).startswith("~")], drop, ms
+
+
 class Continuity(Handler):
     def _text(self, state, paragraph):
         return f"{state}\n\nPARAGRAPH:\n{paragraph}"

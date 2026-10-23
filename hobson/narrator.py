@@ -167,14 +167,20 @@ class Narrator:
         text, _ = self.converse("pro", voice(world), user, temperature=0.7, max_tokens=220)
         return text
 
-    def propose_outcomes(self, state: str, atype: str, claim_lines: list[str]):
+    def propose_outcomes(self, state: str, atype: str, claim_lines: list[str], absent=()):
         """Nova Lite proposes 4 candidate outcomes for THIS action in THIS state. Decider picks.
         Each: label, effect (one line, what Decider reads and the writer must honour), danger 0-5,
         optional moves_to (a new place), optional requires (a ledger condition), adds (facts).
         Impossible attempts are not an option here: the dice category `impossible` handles them."""
         cl = ("\n".join(claim_lines) or "(none)")
+        gone = ""
+        if absent:
+            gone = ("\n\nTHESE DO NOT EXIST IN THIS STORY: " + "; ".join(absent) + ".\n"
+                    "Every outcome must treat them as simply not there. None of them can fit or fail to fit, "
+                    "be empty or full, be found, be dropped, be the wrong one, or be anywhere at all: there is "
+                    "nothing to describe. Outcomes say what the player discovers instead, and what follows.")
         user = (f"{state}\n\nACTION TYPE (already decided): {atype}\n"
-                f"CLAIM CHECKS (already decided against the ledger):\n{cl}\n\n"
+                f"CLAIM CHECKS (already decided against the ledger):\n{cl}{gone}\n\n"
                 "Propose 4 distinct, plausible outcomes of this action, from best to worst for the player. "
                 "Stay inside the setting's own realism: no ghosts, magic or new characters unless the ledger "
                 "or the premise already has them. Judge strictly from the ledger: a claim marked NOT "

@@ -40,6 +40,20 @@ class NovaReferee:
                                detail=f"{amt} {h['object']}".strip()))
         return out
 
+    def screen_facts(self, lstate, absent, facts):
+        plain = [f for f in facts if not str(f).startswith("~")]
+        if not absent or not plain:
+            return list(facts), []
+        what = "; ".join(absent)
+        body = ("These do not exist: " + what + ".\nFor each sentence, does it treat any of them as real, "
+                "present or existing?\n" + "\n".join(f'  "{i}": "{f}"' for i, f in enumerate(plain))
+                + '\nReturn {"<index>": true|false}')
+        d, ms = self._ask(lstate, body, max_tokens=120)
+        keep, drop = [], []
+        for i, f in enumerate(plain):
+            (drop if bool(d.get(str(i), False)) else keep).append(f)
+        return keep + [f for f in facts if str(f).startswith("~")], drop
+
     def continuity(self, lstate, checks, paragraph):
         qs = "\n".join(f'  "{k}": {q}' for k, q, _ in checks)
         d, ms = self._ask(f"{lstate}\n\nPARAGRAPH:\n{paragraph}",
