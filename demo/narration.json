@@ -14,7 +14,7 @@
     0.52,
     0.48
    ],
-   "vo": "Hobson is a text adventure that nobody wrote. You type where the story begins, and Amazon Nova invents the place and the facts it starts with. Then you type what you do, and Nova writes what happens next. Every established fact lives in one list: the record."
+   "vo": "Give a language model a story and it will believe anything you tell it. Say you have a key, and the key exists. Hobson is a text adventure built the other way round. You type where the story begins, and Amazon Nova invents the place and the facts it starts with. Then you type what you do, and Nova writes what happens next. Every established fact lives in one list: the record."
   },
   {
    "id": "s01_title",
@@ -27,7 +27,7 @@
     "Nothing about the story is written in advance: you type where it begins, and what you do.",
     "An LLM game master believes whatever the player asserts. Hobson gives the believing to a model that cannot write."
    ],
-   "vo": "But you can type anything, including something that was never true. Here the player claims a brass key, an uncle, and a locked cabinet. None of them have ever existed in this story. Give that turn to a language model, and this is what it wrote: the brass key, gripped tightly in your hand. The key now exists. Hobson's answer: no key, and nothing recorded.",
+   "vo": "Here the player claims a brass key, an uncle, and a locked cabinet. None have existed in this story. Give that turn to a language model and this is what it wrote: the brass key, gripped tightly in your hand. The key now exists. Hobson's answer: no key, and nothing recorded.",
    "weights": [
     0.3,
     0.36,
@@ -52,7 +52,7 @@
     "Every answer carries a confidence.",
     "Under 60%, Decider says \"not sure\" and Nova takes that call."
    ],
-   "vo": "So Hobson needs something that answers rather than writes. That is Strands Decider 2B: closed questions, fixed answers, a confidence on each. Five of them a turn. And under sixty percent sure, it says so and hands that one call to Nova.",
+   "vo": "So Hobson needs something that answers rather than writes. Strands Decider 2B: closed questions, fixed answers, a confidence on each. Five a turn, and under sixty percent sure it says so and hands that call to Nova.",
    "slide": "questions"
   },
   {
@@ -79,7 +79,18 @@
    "id": "t02_panel",
    "kind": "panel",
    "turn": 2,
-   "vo": "Refused. Every claim checked against the record and found missing, around eighty percent sure. And the record underneath does not move, so the next turn cannot build on it. With Nova Lite refereeing instead, the key was believed in two runs out of three."
+   "vo": "Refused. Every claim checked and found missing, around eighty percent sure, and the record underneath does not move."
+  },
+  {
+   "id": "s50_memory",
+   "kind": "build",
+   "build": "memory",
+   "steps": 2,
+   "weights": [
+    0.42,
+    0.58
+   ],
+   "vo": "But how does it know? The claim goes to the record on its own. Four facts, not one of them a key, so the answer is no, at eighty percent, on this Mac with no API call. The player's sentence is removed before the question is asked, so it cannot argue for itself."
   },
   {
    "id": "s90_results",
@@ -124,8 +135,19 @@
    "kind": "slide",
    "title": "Hobson",
    "lines": [],
-   "vo": "And the guard is not part of the game. It ships on its own, as a Strands intervention handler, on a refund desk. A customer says they returned an order. Nova calls issue refund straight away, without looking the order up. The guard refuses in two hundred and thirty three milliseconds: not established, seventy eight percent. Only then does Nova check, find no return, and ask for a receipt. One typed question. The pattern is guardrails.",
+   "vo": "This was a game, but the problem is not. So the guard ships on its own, as a Strands intervention handler, on a refund desk. A customer says they returned an order. Nova calls issue refund straight away, without looking it up. The guard refuses in two hundred and thirty three milliseconds: not established, seventy eight percent. Only then does Nova check and ask for a receipt.",
    "slide": "pattern"
+  },
+  {
+   "id": "s95_close",
+   "kind": "build",
+   "build": "close",
+   "steps": 2,
+   "weights": [
+    0.5,
+    0.5
+   ],
+   "vo": "That is what Hobson is for. The deciding is taken away from the writer, a model that cannot write cannot be talked into anything, and the record is the only thing that counts as true. Refunds, claims, access, support: one typed question, and your agent stops believing whatever it is told."
   }
  ],
  "premise": "a lighthouse on the Kerala coast during a storm, 1962; I am the keeper's niece, sent up with a lamp and a letter I have not read"

@@ -132,6 +132,8 @@ DESIGNS = {
     "results": lambda s: SL.results(("Decider 2B referee", "Nova Lite referee"),
         [(r[0], r[1], r[2], i < 2) for i, r in enumerate(s["rows"][1:])], s.get("lines", [])),
     "pattern": lambda s: SL.pattern(),
+    "memory": lambda s: SL.memory(2),
+    "close": lambda s: SL.close(2),
     "end": lambda s: SL.end("github.com/Felina14/hobson", ["#strands-decider-2b", "#guardrails"],
         ["Strands Decider 2B runs locally. Amazon Nova Lite and Pro run on Amazon Bedrock.",
          "The ledger guard also ships as a standalone Strands InterventionHandler,",
@@ -151,7 +153,7 @@ for i, s in enumerate(narr["scenes"]):
     if not os.path.exists(vo): sys.exit(f"missing voice-over {vo}; run make_vo.sh first")
     k = s["kind"]
     if k == "build":
-        maker = {"what": SL.what, "problem": SL.problem}[s.get("build", "problem")]
+        maker = {"what": SL.what, "problem": SL.problem, "memory": SL.memory, "close": SL.close}[s.get("build", "problem")]
         steps = s.get("steps", 3)
         pngs = [SL.render(f"{sid}{n}", maker(n), f"{TMP}/{sid}_{n}.png") for n in range(1, steps + 1)]
         build_segment(pngs, s.get("weights", [1.0] * steps), vo, out)

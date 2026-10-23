@@ -279,3 +279,68 @@ def what(step):
         s += txt(80, 668, "Nova writes what happens next \u2014 and the record grows.",
                  21, DIM, SERIF)
     return s
+
+
+RECORD4 = ["You are the keeper's niece with a lamp and an unread letter.",
+           "The lighthouse is old, with creaking floors and flickering lights.",
+           "The player has read the letter.",
+           "The letter warns of a danger it does not name."]
+
+
+def memory(step):
+    """How an answer comes out of the record."""
+    s = heading("HOW IT KNOWS THERE IS NO KEY",
+                "the claim is asked against the record alone \u2014 your sentence is removed, so it cannot argue for itself")
+    s += box(80, 196, 470, 96, stroke=BLUE, fill=PANEL, r=10)
+    s += txt(104, 230, "THE QUESTION", 12, BLUE, MONO, "bold", ls=2)
+    s += txt(104, 266, "\u201cthe player holds a brass key\u201d", 21, INK, SERIF)
+    s += f'<path d="M560 244 H630" stroke="{LINE}" stroke-width="1.6"/>'
+    s += f'<path d="M621 238 L630 244 L621 250" fill="none" stroke="{LINE}" stroke-width="1.6"/>'
+    s += box(650, 170, 550, 300, stroke=OK, fill=PANEL, r=10)
+    s += txt(674, 206, "THE RECORD", 12, OK, MONO, "bold", ls=2)
+    s += txt(800, 206, "everything established so far", 12, DIM, MONO)
+    y = 248
+    for f in RECORD4:
+        s += f'<path d="M676 {y-14} V{y+6}" stroke="{OK}" stroke-width="2.5"/>'
+        for i, line in enumerate(__import__("textwrap").wrap(f, 44)):
+            s += txt(696, y + i * 26, line, 18, INK, SERIF)
+        y += 26 * max(1, len(__import__("textwrap").wrap(f, 44))) + 14
+    if step >= 2:
+        s += box(80, 330, 470, 140, stroke=BAD, fill=PANEL, r=10)
+        s += txt(104, 366, "DECIDER 2B ANSWERS", 12, BAD, MONO, "bold", ls=2)
+        s += txt(104, 408, "No \u2014 never established", 28, BAD, SERIF, "bold")
+        s += txt(104, 444, "confidence 80%  \u00b7  on this Mac, no API call", 17, DIM, MONO)
+        s += txt(80, 536, "Four facts. None of them mention a key. That is the whole ruling \u2014",
+                 22, INK, SERIF)
+        s += txt(80, 570, "and the same question is turned on Nova\u2019s own paragraph before it counts.",
+                 22, INK, SERIF)
+        s += txt(80, 632, "Under 60% sure, Decider says so and hands that one call to Nova.",
+                 20, WARN, SERIF)
+    return s
+
+
+def close(step):
+    """What it proves, and where it goes next."""
+    s = heading("WHAT HOBSON IS ACTUALLY FOR")
+    y = 200
+    for head, sub in (("The deciding is taken away from the writer.",
+                       "Nova invents and narrates. It is never asked what is true."),
+                      ("A model that cannot write cannot be talked into anything.",
+                       "Decider 2B reads the record and answers. There is nothing to persuade."),
+                      ("The record is the only thing that counts as true.",
+                       "Not what sounds right, and not what you said with confidence.")):
+        s += f'<circle cx="100" cy="{y-8}" r="6" fill="{OK}"/>'
+        s += txt(130, y, head, 25, INK, SERIF)
+        s += txt(130, y + 28, sub, 19, DIM, SERIF)
+        y += 88
+    if step >= 2:
+        s += f'<path d="M80 {y+6} H{W-80}" stroke="{LINE}" stroke-width="1.4"/>'
+        s += txt(80, y + 52, "Anywhere an agent acts on what a user simply says",
+                 26, OK, SERIF)
+        s += txt(80, y + 90, "refunds  \u00b7  insurance claims  \u00b7  access requests  \u00b7  support  \u00b7  bookings",
+                 21, DIM, MONO)
+        s += txt(80, y + 134, "patterns/ledger_guard.py  \u2014  one typed question, ten lines of wiring",
+                 20, BLUE, MONO)
+        s += txt(80, y + 174, "github.com/Felina14/hobson", 20, BLUE, MONO)
+        s += txt(W - 80, y + 174, "#strands-decider-2b   #guardrails", 19, WARN, MONO, anchor="end")
+    return s
