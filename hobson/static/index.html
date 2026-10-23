@@ -17,17 +17,6 @@
   #story>*{max-width:680px;margin-left:auto;margin-right:auto}
   #story .turn{max-width:680px;margin:0 auto;border-top:1px solid var(--line);padding-top:18px;margin-top:22px}
   #story .scene{font:600 13px ui-monospace,Menlo,monospace;letter-spacing:.14em;color:var(--dim);margin:26px 0 10px}
-  #story img.scene-img{display:block;width:100%;border-radius:10px;opacity:0;animation:fade-in .7s ease forwards}
-  #story .scene-slot{position:relative;width:100%;aspect-ratio:16/9;max-height:250px;overflow:hidden;border-radius:10px;
-    margin:0 0 16px;background:#0c0d10;border:1px solid var(--line)}
-  #story .scene-slot.ready{border-color:transparent;background:none;height:auto;max-height:250px}
-  #story .scene-slot.ready img{max-height:250px;object-fit:cover}
-  #story .scene-wait{position:absolute;inset:0;display:grid;place-items:center;color:var(--dim);
-    font:12px ui-monospace,Menlo,monospace;letter-spacing:.06em}
-  #story .scene-wait::after{content:'';position:absolute;inset:0;
-    background:linear-gradient(90deg,transparent,rgba(255,255,255,.035),transparent);animation:sweep 1.5s linear infinite}
-  @keyframes sweep{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
-  @keyframes fade-in{to{opacity:1}}
   #story p{margin:0 0 14px}
   #premise{max-width:720px;margin:12vh auto 0;padding:0 8px}
   #premise h2{font:600 13px ui-monospace,Menlo,monospace;letter-spacing:.14em;color:var(--dim);margin:0 0 10px}
@@ -62,10 +51,17 @@
   .row.world .conf{color:var(--blue)}
   #timing{margin-top:8px;font:14px ui-monospace,Menlo,monospace;color:var(--dim)}
   #timing b{color:var(--ink);font-weight:600}
-  #ledger{margin-top:22px}
-  #ledger h3{font:700 13px ui-monospace,Menlo,monospace;letter-spacing:.14em;color:var(--dim);margin:0 0 8px}
-  #ledger li{font-size:14px;color:var(--dim);margin:0 0 4px}
+  #ledger{margin-top:20px}
+  #ledger h3{font:700 11px ui-monospace,Menlo,monospace;letter-spacing:.15em;color:var(--dim);margin:0 0 9px;
+    display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+  #ledger h3 em{font-style:normal;color:var(--ok);font-size:12px}
+  #ledger ul{margin:0;padding:0;list-style:none;border-left:2px solid var(--line)}
+  #ledger li{font-size:13.5px;color:var(--dim);margin:0;padding:5px 0 5px 12px;line-height:1.35;position:relative}
+  #ledger li+li{border-top:1px solid #1b1e26}
   #ledger li.new{color:var(--ink)}
+  #ledger li.new::before{content:"";position:absolute;left:-2px;top:0;bottom:0;width:2px;background:var(--ok)}
+  #ledger.sealed{animation:seal .9s ease}
+  @keyframes seal{0%{box-shadow:0 0 0 0 rgba(236,110,110,.5)}100%{box-shadow:0 0 0 14px rgba(236,110,110,0)}}
   .thinking{color:var(--dim);font-style:italic}
   details{margin-top:14px;font-size:14px;color:var(--dim)}
   details p{margin:8px 0;padding:8px;border-left:2px solid var(--line)}
@@ -97,11 +93,11 @@
     <p class="sub">Each answer comes from the small model on this Mac. Under 60% sure, it says so and asks Nova.</p>
     <div id="hv-verdict"></div>
     <div id="hv-claims"></div>
+    <div id="ledger"><h3>THE RECORD · everything the story has established</h3><ul id="facts"></ul></div>
+    <div id="hv-timeline"></div>
     <details id="log"><summary>Every question Decider was asked</summary><div id="rows"></div></details>
     <div id="timing"></div>
     <details id="drafts" hidden><summary>The two drafts Nova wrote</summary><div id="draftbox"></div></details>
-    <div id="ledger"><h3>THE LEDGER · what the story has established</h3><ul id="facts"></ul></div>
-    <div id="hv-timeline"></div>
   </aside>
 </main>
 <form id="f"><input id="action" autocomplete="off" placeholder="What do you do?  (type anything)" disabled></form>
@@ -112,22 +108,13 @@ const story=document.getElementById('story'), rows=document.getElementById('rows
 let busy=false, known=new Set();
 
 function el(tag, cls, text){const e=document.createElement(tag); if(cls) e.className=cls; if(text!=null) e.textContent=text; return e;}
-function scene(name, image){
-  story.appendChild(el('div','scene',name.toUpperCase()));
-  if(!image) return;
-  // Nova Canvas draws the scene on first request, so hold the space and fade it in.
-  const slot=el('div','scene-slot');
-  slot.appendChild(el('div','scene-wait','Nova Canvas is drawing this place…'));
-  story.appendChild(slot);
-  const im=el('img','scene-img');
-  im.onload=()=>{slot.innerHTML=''; slot.appendChild(im); slot.classList.add('ready'); story.scrollTop=story.scrollHeight;};
-  im.onerror=()=>slot.remove();
-  im.src=image;
-}
+function scene(name){ story.appendChild(el('div','scene',name.toUpperCase())); }
 function para(t, cls){story.appendChild(el('p',cls||'',t)); story.scrollTop=story.scrollHeight;}
 function ledger(list){
   facts.innerHTML=''; list.forEach(x=>{const li=el('li', known.has(x)?'':'new', x); facts.appendChild(li);});
   list.forEach(x=>known.add(x));
+  const h=document.querySelector('#ledger h3');
+  if(h){ let c=h.querySelector('em'); if(!c){c=el('em'); h.appendChild(c);} c.textContent=list.length+' facts'; }
 }
 function pct(c){return c==null?'':Math.round(c*100)+'%';}
 async function renderRows(list){
@@ -157,7 +144,7 @@ async function start(premise){
   const s=await post('/start',{seed:+(q.get('seed')||7), referee:q.get('referee')||'decider', premise: premise||''});
   th.remove();
   story.appendChild(el('p','title', `${s.title} — ${s.premise}`));
-  scene(s.scene, s.image); para(s.opening); ledger(s.ledger); input.disabled=false; input.focus();
+  scene(s.scene); para(s.opening); ledger(s.ledger); input.disabled=false; input.focus();
   document.dispatchEvent(new CustomEvent('hobson:start',{detail:s}));
 }
 const pf=document.getElementById('pf'), pin=document.getElementById('premise-input');
@@ -178,7 +165,7 @@ f.addEventListener('submit', async e=>{
     timing.innerHTML=`Decider <b>${(t.timing.decider_ms/1000).toFixed(1)} s</b> on this Mac &nbsp;·&nbsp; Nova <b>${(t.timing.nova_ms/1000).toFixed(1)} s</b> on Bedrock`;
     para(t.paragraph);
     if(t.drafts && t.drafts.A){ draftbox.innerHTML=''; for(const k of ['A','B']){const p=el('p',k===t.picked?'picked':'',`Draft ${k}: ${t.drafts[k]}`); draftbox.appendChild(p);} draftsEl.hidden=false; }
-    if(t.opening){ scene(t.scene, t.image); para(t.opening); }
+    if(t.opening){ scene(t.scene); para(t.opening); }
     ledger(t.ledger);
     if(t.ends){ para('THE END','scene'); return; }
   }catch(err){ th.textContent='Something went wrong: '+(err&&err.message||err); if(!th.isConnected) story.appendChild(th); }

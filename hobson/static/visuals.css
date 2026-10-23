@@ -73,3 +73,10 @@
 
 /* keep the flow strip in view while the panel scrolls */
 #hv-flow{position:sticky;top:-2px;z-index:2;background:var(--panel);padding-bottom:10px}
+
+/* the panel reads top to bottom: verdict, the claims, the record, the whole game */
+.hv-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.hv-h em{font-style:normal;color:var(--bad);font-size:11px;letter-spacing:.06em}
+.hv-strip{height:72px}
+.hv-strip .col .bar{width:22px}
+.hv-verdict .head{font-size:16.5px}

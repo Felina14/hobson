@@ -19,7 +19,6 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import art
 from .game import Game
 
 STATIC = Path(__file__).resolve().parent / "static"
@@ -163,33 +162,6 @@ def turn(body: TurnBody):
         }
 
 
-_art_prompts: dict[str, str] = {}
-
-
 def _scene_image(scene_art: str, scene=None):
-    """A hand-drawn banner when one of the seven fits, otherwise one Nova Canvas draws for this
-    exact scene. The URL comes back straight away and the image is generated when the browser
-    asks for it, so a turn is never held up waiting on a picture."""
-    p = STATIC / "scenes" / f"{scene_art}.png"
-    if scene_art and scene_art != "none" and p.exists():
-        return f"/static/scenes/{scene_art}.png"
-    if scene is None or _game is None:
-        return None
-    title = getattr(_game.world, "title", "")
-    premise = getattr(_game.world, "premise", "")
-    k = art.key_for(title, scene.name, scene.description)
-    _art_prompts[k] = art.prompt_for(title, scene.name, scene.description, premise)
-    return f"/scene/{k}.png"
-
-
-@app.get("/scene/{key}.png")
-def scene_png(key: str):
-    f = art.path_for(key)
-    if not f.exists():
-        prompt = _art_prompts.get(key)
-        if not prompt:
-            return JSONResponse({"error": "unknown scene"}, status_code=404)
-        f = art.draw(key, prompt, seed=int(key[:6], 16))
-        if f is None:
-            return JSONResponse({"error": "no image"}, status_code=503)
-    return FileResponse(f, media_type="image/png")
+    """No pictures. Everything the panel shows is read from the rulings themselves."""
+    return None

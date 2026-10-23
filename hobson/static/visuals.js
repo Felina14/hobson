@@ -48,6 +48,7 @@
     const n = denied.length, plural = n === 1 ? 'claim is' : 'claims are';
     txt.appendChild(el('div', 'head', blocked
       ? `Refused · ${n} of ${claims.length} ${plural} not in the record`
+      : claims.length === 0 ? 'Allowed · the action claimed nothing to check'
       : `Allowed · ${claims.length === 1 ? 'the claim checks out' : `all ${claims.length} claims check out`}`));
     txt.appendChild(el('div', 'sub', added
       ? `${added} new fact${added === 1 ? '' : 's'} recorded`
@@ -80,26 +81,36 @@
     if (you) {
       const chip = el('div', 'hv-chip ' + (blocked ? 'bad' : 'ok'));
       chip.appendChild(el('span', 'dot', blocked ? '✕' : '✓'));
+      const facts = added ? `${added} fact${added > 1 ? 's' : ''} recorded` : 'nothing recorded';
       chip.appendChild(el('span', '', blocked
-        ? `${denied.length} of ${claims.length} claim${claims.length > 1 ? 's' : ''} refused · ${added ? added + ' fact' + (added > 1 ? 's' : '') + ' recorded' : 'nothing recorded'}`
-        : `${claims.length} claim${claims.length === 1 ? '' : 's'} checked · ${added} fact${added === 1 ? '' : 's'} recorded`));
+        ? `${denied.length} of ${claims.length} claim${claims.length > 1 ? 's' : ''} refused · ${facts}`
+        : claims.length === 0 ? `nothing claimed · ${facts}`
+        : `${claims.length} claim${claims.length === 1 ? '' : 's'} checked · ${facts}`));
       you.after(chip);
     }
 
     turns.push({ added, blocked, denied: denied.length });
     TL.innerHTML = '';
-    TL.appendChild(el('div', 'hv-h', 'THE STORY SO FAR · one column per turn'));
+    const kept = turns.filter(x => x.blocked).length;
+    const h = el('div', 'hv-h', 'EVERY TURN SO FAR');
+    if (kept) h.appendChild(el('em', '', `${kept} refused`));
+    TL.appendChild(h);
     const strip = el('div', 'hv-strip');
     turns.forEach((x, i) => {
       const col = el('div', 'col' + (x.blocked ? ' bad' : ''));
-      const bar = el('div', 'bar'); bar.style.height = Math.min(48, 8 + x.added * 13) + 'px';
+      const bar = el('div', 'bar'); bar.style.height = Math.min(54, 10 + x.added * 14) + 'px';
       col.appendChild(bar); col.appendChild(el('span', '', String(i + 1)));
       col.title = x.blocked ? `turn ${i + 1}: ${x.denied} claim(s) refused, ${x.added} fact(s) recorded`
                             : `turn ${i + 1}: ${x.added} fact(s) recorded`;
       strip.appendChild(col);
     });
     TL.appendChild(strip);
-    TL.appendChild(el('div', 'hv-note', 'A short red column is a turn someone tried to add something that was never true.'));
+    TL.appendChild(el('div', 'hv-note',
+      'Height is how much that turn added to the record. Red is a turn that tried to add something never true.'));
+
+    // the record is the thing being protected: show it reacting
+    const led = document.getElementById('ledger');
+    if (led) { led.classList.remove('sealed'); void led.offsetWidth; if (blocked && !added) led.classList.add('sealed'); }
   }
 
   document.addEventListener('hobson:start', () => { lit('nova'); });
