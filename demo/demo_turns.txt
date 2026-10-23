@@ -5,7 +5,7 @@ I set the lamp down and finally open the letter
 # 2. the bluff: a key, an uncle and a cabinet that exist nowhere in the story
 I use the brass key my uncle gave me to open the locked cabinet by the lamp
 # 3. a move: the player leaves the scene, Nova writes the next one
-I go back down the stairs to find my uncle
+I go back down the stairs to see what is below
 # 4. violence, for the danger routing
 I smash the lamp against the wall
 # 5. a second bluff that references the first turn: did the story really say that?

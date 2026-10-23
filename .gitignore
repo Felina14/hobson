@@ -1,9 +1,10 @@
-.venv/
-__pycache__/
 *.pyc
 .DS_Store
-results/*.log
+.venv/
 SPEC_hobson.md
-demo/rec/
+__pycache__/
 demo/_build/
+demo/capture_demo.json
+demo/rec/
+results/*.log
 results/demo_run_export.json

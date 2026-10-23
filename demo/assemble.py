@@ -58,24 +58,20 @@ def slide_png(s, path):
         y += 10
     im.save(path)
 
-def results_png(path):
+def results_png(path, s=None):
     im = Image.new("RGB", (W, H), BG); d = ImageDraw.Draw(im)
-    d.text((80, 70), "Same five turns, two referees, three runs each", font=font("monob", 36), fill=GREEN)
-    rows = [("", "Decider 2B referee", "Nova Lite referee"),
-            ("Rulings per turn, median latency", "2,667 ms (on the Mac)", "2,926 ms"),
-            ("Nova cost per 100 turns of rulings", "$0.0044", "$0.0131"),
-            ("The bluff with no pass", "caught, 3 of 3", "waved through, 3 of 3"),
-            ("Calls handed back as \"not sure\"", "9 of 15", "n/a")]
-    y = 170
+    d.text((80, 70), (s or {}).get("caption", "Same five turns, two referees, three runs each"), font=font("monob", 34), fill=GREEN)
+    rows = (s or {}).get("rows") or [("", "Decider 2B referee", "Nova Lite referee")]
+    fsm = font("mono", 20); fsb = font("monob", 20)
+    y = 160
     for a, b, c in rows:
-        f = FMB if a == "" else FM
-        d.text((80, y), a, font=FM, fill=DIM if a else FG)
-        d.text((560, y), b, font=f, fill=FG); d.text((860, y), c, font=f, fill=FG); y += 44
-    y += 30
-    for l in ["Decider never fails to answer and never writes a word.",
-              "When it is not sure, it says so, and the big model takes that one call.",
-              "Every run writes a Markdown log of its rulings to results/md."]:
-        d.text((80, y), l, font=FSM, fill=FG); y += 36
+        f = fsb if a == "" else fsm
+        d.text((80, y), a, font=fsm, fill=DIM if a else FG)
+        d.text((520, y), b, font=f, fill=FG); d.text((860, y), c, font=f, fill=FG); y += 42
+    y += 24
+    for l in (s or {}).get("lines", []):
+        for ll in textwrap.wrap(l, 92):
+            d.text((80, y), ll, font=FSM, fill=FG); y += 34
     d.text((80, y + 40), "github.com/Felina14/hobson", font=FM, fill=BLUE)
     im.save(path)
 
@@ -111,7 +107,7 @@ for i, s in enumerate(narr["scenes"]):
     if k == "slide":
         png = f"{TMP}/{sid}.png"; slide_png(s, png); still_segment(png, vo, cap, out)
     elif k == "results":
-        png = f"{TMP}/{sid}.png"; results_png(png); still_segment(png, vo, cap, out)
+        png = f"{TMP}/{sid}.png"; results_png(png, s); still_segment(png, vo, cap, out)
     elif k == "clip":
         n = s["turn"]
         if STILLS: still_segment(f"{REC}/t0{n}_full.png", vo, cap, out)
