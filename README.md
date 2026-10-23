@@ -1,25 +1,61 @@
 # Hobson
 
-**Nova writes; Hobson decides.** A text adventure with two brains. You type where the story begins,
-anything at all, and what your character does, in your own words. **Amazon Nova** (Bedrock) invents
-the setting, writes every scene and proposes what could happen next. **Strands Decider 2B**, running
-locally, makes the calls: what kind of action that was, whether what you just claimed is actually
-true in the story so far, which of the proposed outcomes follows, and, before a paragraph is
-accepted, whether the narrator's own writing contradicts the facts the story has established.
-Every ruling prints its confidence; below 0.6 Decider says so and Nova Lite takes that one call.
+**A text adventure where the thing deciding what is true cannot write a word.**
+
+Type a premise — any sentence. **Amazon Nova** on Bedrock invents the place, the people and the
+facts the story opens with. Then type what you do, in your own words, and Nova writes what happens
+next. Everything the story establishes lands in one list, **the ledger**, and that list is the only
+memory the game has.
+
+The model that reads the ledger is not Nova. It is **Strands Decider 2B**, running locally, and it
+cannot produce prose. It reads a state and a typed question and returns a choice, a yes or no, or a
+score, each with a calibrated confidence. It rules on what kind of action you attempted, whether
+every claim your action leans on is actually established, whether you hold what you named, which of
+Nova's proposed outcomes follows, and — before any paragraph is accepted — whether Nova's own
+writing contradicts the record. Below 0.6 confidence it says "not sure" out loud and hands that one
+call to Nova Lite.
+
+It cannot be talked into anything, because it cannot talk.
 
 Nothing about the story is written in advance. There is no world file, no scene list, no prepared
-outcomes. The only hand-written sentences in the game are five setting-free rules and the typed
-questions in `hobson/questions.yaml`.
+outcomes. The only hand-written English in the game is five setting-free rules and the typed
+questions in [`hobson/questions.yaml`](hobson/questions.yaml).
+
+> **Demo video** · [2:50, narrated](https://d3qpn17qic87hh.cloudfront.net/hobson/)
+> **Article** · [demo/article.md](demo/article.md)
+> **Reusable pattern** · [`patterns/ledger_guard.py`](patterns/ledger_guard.py)
 
 Entry for the AWS Builder Center *Agent Experience Hackathon: Strands Decider*. Declared decision
-pattern: **`#guardrails`**: every claim the player makes, and every paragraph the narrator writes,
-is checked against the ledger of established facts before it is allowed to act on the story. Also
-uses the policy pattern (the dice classifies the action into fixed categories before anything else
-happens), context/memory (the ledger) and stakes routing (Nova Lite or Pro by danger).
+pattern **`#guardrails`**: every claim the player makes, and every paragraph the narrator writes, is
+checked against the ledger before it is allowed to act on the story. It also exercises **policy**
+(the dice classifies the action into fixed categories before anything else happens),
+**context/memory** (the ledger is the only context injected) and **model routing** (Nova Lite or Pro
+by stakes).
 
 Named after the checkpoint, `strands-decider-2B-hobson-v19`, and after Hobson's choice: you can type
 anything, but what is true is not up to you.
+
+---
+
+## The problem it exists for
+
+Give a language model a story and it will believe whatever you tell it. On an early build I typed a
+bluff into my own game:
+
+```
+> I use the brass key my uncle gave me to open the locked cabinet by the lamp
+```
+
+No key, no uncle, no cabinet had ever existed in that story. The model wrote back:
+
+> The brass key, gripped tightly in your hand, fails to engage with the lock. You turn it this way
+> and that, but the key simply does not fit.
+
+That reads like a refusal. It is not. The cabinet stays shut, but the key is now in the player's
+hand, and from the next turn on it can be used on other locks. The model writing the world was also
+the model deciding what was true in it, and storytelling won.
+
+Hobson takes the deciding away from the writer. Here is the same turn today:
 
 ```
 > I use the brass key my uncle gave me to open the locked cabinet by the lamp
@@ -35,9 +71,32 @@ anything, but what is true is not up to you.
 ```
 
 _(Web run `hobson_web_decider_s11_20261022-214344`, rows in `results/referee_decider_11.jsonl`. A
-lighthouse on the Kerala coast, 1962, a premise typed into the box. Nothing about a key, an uncle or
-a cabinet existed anywhere before the player typed that line. That run predates contested routing
-(step 7); the same turn now goes to Nova Pro.)_
+lighthouse on the Kerala coast, 1962, a premise typed into the box. That run predates contested
+routing (step 7); the same turn now goes to Nova Pro.)_
+
+**This is not a games problem.** Anywhere an agent acts on what a user simply asserts — a refund, an
+insurance claim, an access request, a support escalation — the same failure is available. That is why
+the guard ships separately; see [the reusable pattern](#the-reusable-pattern-the-ledger-guard).
+
+---
+
+## What it does
+
+| | |
+|---|---|
+| **Any premise** | A lighthouse in 1962, a 3am payments outage, a generation ship. Nova builds the world; no authored content of any kind. |
+| **A ledger as the only memory** | Plain sentences. Nothing is true because it sounds true — only because it is in the ledger. |
+| **Claims ruled against the record alone** | The claim question is asked on a state that stops at the ledger, with the player's sentence deleted, so the sentence cannot vouch for itself. |
+| **The narrator guarded too** | The same question is turned on Nova's own paragraph before it is allowed to count. |
+| **Calibrated confidence as control flow** | Below 0.6 Decider says "not sure" on screen and hands that one call to Nova Lite. |
+| **Stakes routing** | Danger 0–2 → Nova Lite writes; 3–5, or any contested turn → Nova Pro. |
+| **Two drafts, scored** | Decider checks both against the ledger, then scores them; the higher wins. |
+| **The turn shown as it happens** | `POST /turn_stream` pushes each real milestone — claims extracted, each claim ruled, writer chosen — so the page is never a frozen seven seconds. |
+| **Your own sentence marked up** | The words the action leaned on are underlined where you typed them: red where the ledger does not hold them, green where it does. |
+| **A drawing for every scene** | Composed in code from the scene's own words ([`hobson/scene_art.py`](hobson/scene_art.py)): a motif from eleven, plus sea, rain or stars, seeded by a hash. Deterministic, offline, free. |
+| **Everything logged** | One JSON row per turn: every ruling with its probabilities and confidence, the candidate outcomes, both drafts, the pick, latency, tokens and cost. |
+
+---
 
 ## Run it
 
@@ -53,11 +112,13 @@ python -m hobson play --premise "a research station on Europa, two days after th
 python -m hobson play                     # blank premise: Nova invents one
 python -m hobson play --referee nova --premise "..."         # Nova Lite decides instead (the baseline)
 python -m hobson compare --seed 7 --repeats 3                # both referees → results/md/referee_compare.md
+python -m patterns.example_refund_desk                       # the guard on an agent that is not a game
 ```
 
-Every run appends one JSON row per turn to `results/referee_<mode>_<seed>.jsonl` (each ruling with
-its probabilities and confidence, the candidate outcomes Nova proposed, both drafts, the pick,
-latency, tokens per Nova tier, cost) and writes `results/md/<run>.md` when the game ends.
+Every run appends one JSON row per turn to `results/referee_<mode>_<seed>.jsonl` and writes
+`results/md/<run>.md` when the game ends.
+
+---
 
 ## One turn
 
@@ -70,24 +131,82 @@ latency, tokens per Nova tier, cost) and writes `results/md/<run>.md` when the g
    is checked next and what Nova is asked to propose.
 4. **Candidates.** Nova Lite proposes four outcomes for *this* action in *this* state, given the
    claim rulings, each with a one-line effect, a danger 0–5, optionally a place it moves the player
-   to, a ledger condition it depends on, and the facts it would establish. `impossible` actions
-   skip this: their one outcome is that it does not happen.
+   to, a ledger condition it depends on, and the facts it would establish. When the turn leans on
+   something absent, Hobson inserts its own `it-is-not-there` candidate **first**, because option
+   order moves the pick. `impossible` actions skip this step.
 5. **Decider, call C, the outcome:** a `choice` over the candidates, on a state that also carries
    the claim rulings. If the picked outcome has a condition, a `noul` checks it against the ledger;
    if false, the attempt fails and nothing of it happens.
-6. **Unsure → Nova Lite.** Any decision with confidence below 0.6 is re-asked of Nova Lite with the
-   same question and options, and shown as `not sure · 57% → Nova answered`.
+6. **Unsure → Nova Lite.** Any decision below 0.6 is re-asked of Nova Lite with the same question
+   and options, and shown as `not sure · 57% → Nova answered`.
 7. **Routing.** Danger 0–2 → Nova Lite writes, 3–5 → Nova Pro. A *contested* turn (any claim or
    holding ruled false, or a condition not met) also goes to Pro: the writer has to push back
    against the player's own words, and Lite does that badly.
-8. **Two drafts, the guard, the editor.** Nova writes two drafts. Decider checks each against the
-   ledger and the ruling with one concrete `noul` per thing that could go wrong (did the false claim
-   come true, did the player use the item they do not hold, did the ruled outcome actually happen).
-   A failing draft is dropped; if both fail, Nova Pro rewrites with the specific problem, twice at
-   most. A paragraph the guard still rejects is shown but never feeds the ledger. Between two
-   passing drafts, the editor scores each alone (0–6) and the higher wins.
-9. **Ledger.** The accepted paragraph's new facts and the outcome's facts are appended; facts the
-   paragraph lists as `NOW FALSE` are retired. A `moves_to` outcome makes Nova write the next scene.
+8. **Two drafts, the guard, the editor.** Decider checks each draft against the ledger with one
+   concrete `noul` per thing that could go wrong. A failing draft is dropped; if both fail, Nova Pro
+   rewrites with the specific problem, twice at most. A paragraph the guard still rejects is shown
+   but never feeds the ledger. Between two passing drafts, the editor scores each alone (0–6).
+9. **Ledger.** On an uncontested turn the accepted paragraph's new facts and the outcome's facts are
+   appended, and facts listed as `NOW FALSE` are retired. **On a contested turn the prose
+   establishes nothing** — only the outcome's own additions survive, and those are screened (below).
+
+---
+
+## The guardrail, in detail
+
+Four things stand between a user's assertion and the record.
+
+**1. The claim is asked against the ledger alone.** The state stops before the action. Measured
+while building: on a state that ends at the ledger, 7 of 8 test claims were right and confident;
+with the action included, 4 of 8.
+
+**2. Nova is told what is absent** before it proposes outcomes, and an honest `it-is-not-there`
+candidate is offered first.
+
+**3. A contested turn records nothing from the prose.** Only the outcome's own `adds` survive.
+
+**4. A deterministic gate screens those.** A model-based screen was asked whether a proposed fact
+relied on something absent, and it let this through:
+
+```
+You do not have the key to open the locked cabinet.
+```
+
+That is a denial — and it installs *the cabinet* in the ledger as a thing that exists. So a string
+match now runs in front of the model: any fact naming an absent thing by its head noun is refused
+without asking anyone ([`hobson/handlers/continuity.py`](hobson/handlers/continuity.py)).
+
+```
+DROP(key)    You do not have the key to open the locked cabinet.
+DROP(key)    The key does not fit the cabinet.
+DROP(uncle)  Your uncle never gave you anything.
+keep         The lamp is lit and set on the floor.      ← real, stays
+keep         The storm grows worse and the stairs are wet.
+```
+
+Whatever survives all four, plus the model screen, fails closed: a fact that is not clearly clear of
+the absent things does not get written.
+
+---
+
+## Does it generalise?
+
+Every comparison number below comes from one premise, so the design was tested on others. See
+[`results/md/generalisation.md`](results/md/generalisation.md).
+
+- **A 3am production incident at a payments company in Bengaluru.** Nova invented a colleague named
+  Rajiv and recorded him. The bluff — *"I use the production root token my manager gave me last
+  week"* — was refused on all three claims at 81%, 82%, 83%; `new_facts` empty.
+- **A generation ship, where the bluff was not an object at all** — *"the captain already signed my
+  emergency override"*. Refused at 81%. The ledger check does not care whether the lie is a thing
+  you could be asked to produce or a claim about who authorised what.
+- **A Chennai hospital night shift**, live: *"I open the drug cabinet with the key the senior gave
+  me."* **key** and **senior** both came back absent, in a world forty seconds old.
+
+Those runs also exposed the classifier weakness honestly: on both turns the nine-way dice was under
+threshold and went to Nova.
+
+---
 
 ## The five handlers
 
@@ -131,9 +250,11 @@ Wiring (`hobson/game.py`): the question is asked on a state that ends at the led
 user's message, so the message cannot vouch for itself. The answer is written into the brief the
 generator must honour, and the same check is turned round on the generator's output
 (`Continuity`): "does the PARAGRAPH show this claim as true?" Anything that fails never reaches the
-record. Usage note: use it anywhere a generator is allowed to act on what a user asserts (a
-support agent told "I already paid", a game told "the merchant gave me a pass"); keep the record
-in plain sentences; ask the claim against the record alone.
+record. Usage note: use it anywhere a generator is allowed to act on what a user asserts (a support
+agent told "I already paid", a game told "the merchant gave me a pass"); keep the record in plain
+sentences; ask the claim against the record alone.
+
+---
 
 ## Referee mode: Decider vs Nova Lite
 
@@ -183,6 +304,8 @@ locally and is counted at $0.
 - **Weak:** the editor. Pointwise scores sit in a narrow band and tie often, and the A/B pick
   disagreed with itself 7 times in 11.
 
+---
+
 ## The pattern on a Strands agent that is not a game
 
 The ledger guard is the piece worth lifting, so it also ships as a standalone
@@ -205,27 +328,39 @@ agent = Agent(model=..., tools=[lookup_order, issue_refund], interventions=[guar
 
 Before `issue_refund` runs, each statement goes to Decider as one `noul` against the record,
 and a statement the record does not support turns the call into a `Deny` whose reason tells the
-model what is missing. Two details do the work:
+model what is missing. Three details do the work:
 
 - **The user's message is not in the state.** Decider reads the record and nothing else
   (`LedgerGuard.state()`). With the message in, the user's own phrasing — "the key my uncle gave
-  me", "the one I already returned" — pulls the answer towards yes. That was measured while
-  building the game: on a state that stops at the record, 7 of 8 claims were right and confident;
-  with the action included, 4 of 8.
-- **It is three-way, and fails closed by default.** Confidently in the record proceeds;
-  confidently absent is denied; below the 0.6 line is neither, and `on_unsure` decides whether
-  that denies (the default), asks a person through the framework's `Confirm` action, or allows.
-  The margins are real: on the refund desk an invented return was refused at 0.78, while true
-  claims passed at 0.66 to 0.78. True claims clear the line, but not by much, which is exactly
-  when handing the call to a human beats guessing in either direction.
+  me", "the one I already returned" — pulls the answer towards yes. Measured while building the
+  game: on a state that stops at the record, 7 of 8 claims were right and confident; with the
+  action included, 4 of 8.
+- **It is three-way, and fails closed by default.** Confidently in the record proceeds; confidently
+  absent is denied; below the 0.6 line is neither, and `on_unsure` decides whether that denies (the
+  default), asks a person through the framework's `Confirm` action, or allows. The margins are real:
+  on the refund desk an invented return was refused at 0.78, while true claims passed at 0.66 to
+  0.78. True claims clear the line, but not by much, which is exactly when handing the call to a
+  human beats guessing in either direction. `on_error` returns `"deny"`.
+- **The engine is cached.** The first build reloaded the checkpoint per instance, 3,496 ms a call.
+  A module-level cache (`get_engine`) brought that to 233–268 ms.
 
-[`patterns/example_refund_desk.py`](patterns/example_refund_desk.py) is a runnable refund desk:
-the customer asserts a return that never happened, Nova believes them and calls the refund tool,
-and the guard refuses it — then the same request succeeds once the return is actually on the
-record. `python -m patterns.example_refund_desk`.
+[`patterns/example_refund_desk.py`](patterns/example_refund_desk.py) is a runnable refund desk.
+In the sharpest of three observed runs, **Nova called `issue_refund` immediately, with no lookup at
+all** — its reasoning: *"The user has provided the order ID and the amount, so I can proceed."* The
+guard refused it in **233 ms** (*"order A-4471 was returned by the customer"*, not established,
+**0.78**); only then did Nova look up the order, find no return, and ask for a receipt. A genuine
+return is allowed in 268 ms.
+
+Across those three runs the agent behaved differently each time: once it looked the order up first
+and the guard never fired; twice it went straight for the money. **The guard is not an improvement
+on a model that was already careful — it is what makes the behaviour reliable**, because the model
+alone is a coin toss. Both behaviours are recorded in the example's docstring rather than only the
+flattering one.
 
 It is the same check the game runs on the player, and the same one it runs on the narrator's own
 paragraphs. A record, and a model with no stake in the story being allowed to say what is in it.
+
+---
 
 ## What this version replaced
 
@@ -236,8 +371,8 @@ generates everything and keeps Decider for the two jobs a generator cannot be tr
 judging the player's claims and judging its own prose against the record.
 
 That build's probe (`scripts/legacy/probe_wording.py`, results in
-[`results/legacy/md/wording_probe.md`](results/legacy/md/wording_probe.md)) and its runs (rows and
-reports in `results/legacy/`) set three things this version keeps:
+[`results/legacy/md/wording_probe.md`](results/legacy/md/wording_probe.md)) and its runs set three
+things this version keeps:
 
 - **Ledger questions read the ledger, not the action.** With the action in the state, true ledger
   facts dropped below the threshold and the fake "pass from the merchant" came out unsure. On the
@@ -272,19 +407,19 @@ routes by stakes instead.
 ```
 hobson/
   cli.py          the terminal: python -m hobson play | compare
-  game.py         the turn loop (shared with any front end)
+  game.py         the turn loop (shared with any front end), on_phase milestones
   narrator.py     Nova: openings, drafts, claim extraction, fallback rulings, prices, meter
   referee_nova.py the Nova Lite baseline referee
   handlers/       Dice, Ledger, Ruling, Continuity, Editor + Decision, ask_batch
   questions.yaml  every typed question
   state.py        Scene, World (premise + rules), Ledger (add/retire), Turn, state_text()
+  scene_art.py    a line drawing for any scene, composed from its own words
+  web.py          FastAPI: /start, /turn, /turn_stream (NDJSON), /scene/<k>.svg
+  static/         the page, visuals.js/.css (verdict card, confidence dials, marked-up sentence)
   decider_local.py, nova.py, base.py, mdlog.py   copied from decider-gauntlet
   compare.py      referee comparison report
 patterns/         the ledger guard as a standalone Strands InterventionHandler, + a refund-desk example
-  web.py          FastAPI web view; static/ the page, visuals.js/.css, scenes/ (six line drawings)
-world/README.md   nothing is read from here any more; legacy/town.yaml is the first build's town
-demo/             demo turns, narration, voice-over, recorder and assembler for the video
-scripts/         draw_scenes.py (the six banners); legacy/probe_wording.py
+demo/             narration, voice-over, slides, recorder, assembler, the video, article, site/
 results/          rows (*.jsonl) and markdown (md/); legacy/ holds the first build's
 ```
 
