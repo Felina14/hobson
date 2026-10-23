@@ -91,6 +91,8 @@ The wiring is the part worth copying: ask it on a state that ends at the record,
 
 Swap "the ledger" for an account history and this is a support agent that does not refund you because you told it you already paid. Swap it for a case file and it is an intake bot that does not record a document it has never seen. The game is the demo; the shape is the point.
 
+There is a refund desk in the repository to make that concrete — a Strands agent with Nova, two tools, and an order record that says what was bought and delivered but nothing about returns, which is the ordinary situation: the fact the agent most needs is the one it cannot look up. Told "I sent it back last week", Nova believed it both times I ran it. Once it called the refund tool and the guard refused it in 234 milliseconds, the invented return not established at 0.78. Once it asked the customer to confirm first, having already written "the order was returned" into its own reasoning. The guard is not what stops every bad refund. It is what stops the ones the model actually attempts, every time, and that is the half you cannot get by writing a better prompt.
+
 ## Two referees, same five turns
 
 I ran the same script three times with Decider as referee, and three times with Nova Lite doing the identical job from the identical state, to see what the small model is actually buying.

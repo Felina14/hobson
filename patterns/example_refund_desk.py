@@ -12,10 +12,22 @@ message removed from what Decider reads, and refuses the tool call if it is not.
 Run:  python -m patterns.example_refund_desk        (needs AWS creds; Amazon Nova only)
 
 A note on what this does and does not show. Part 1 calls the guard directly, so the check
-is visible whatever the model does. Part 2 runs the whole agent: Nova usually attempts the
-refund and the guard refuses it, but Nova sometimes declines on its own, which is a fine
-outcome and not a failure of anything. The example is not re-rolled until the model
-misbehaves. Part 3 puts the return on the record and the identical request goes through.
+is visible whatever the model does. Part 2 runs the whole agent, and what Nova does there
+varies between runs. Both of the first two runs are worth stating:
+
+  run 1 - Nova looked up the order, then asked the customer to confirm the return before
+          acting. Its own reasoning asserted "the order was returned", which is not in the
+          record, so it had believed the claim; it simply paused before spending money.
+          The guard was never consulted, because no guarded tool was attempted.
+  run 2 - Nova called issue_refund, and the guard refused it in 234 ms:
+          "order A-4471 was returned by the customer" NOT established (0.78).
+          Nova then told the customer the return was not on record and asked for details.
+
+So the guard is not what stops every bad refund, and this example does not pretend it is.
+It is what stops the ones the model does attempt, every time, which is the half you cannot
+get by prompting. The example is run once and reported, not re-rolled until it denies.
+
+Part 3 puts the return on the record and the identical request goes through.
 """
 from __future__ import annotations
 
