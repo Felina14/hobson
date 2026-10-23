@@ -211,16 +211,23 @@ class Game:
 
         # the ledger only learns from prose the guard accepted; then, on a contested turn, every
         # remaining fact is screened so nothing the ledger calls absent can be written back in
-        proposed = list(adds) + ([] if still_bad else list(facts))
-        dropped = []
+        # A contested turn establishes nothing from the prose. The player tried to act on
+        # something the record says is not there; the attempt failed; there is no new fact in
+        # that, and letting the paragraph volunteer one is how "the cabinet is locked" got into
+        # the ledger after the cabinet had just been ruled out. The outcome's own adds still
+        # go through the screen below.
+        proposed = list(adds) + ([] if (still_bad or contested) else list(facts))
+        dropped = ([f for f in facts if str(f).strip()] if (contested and not still_bad) else [])
+        screened: list = []
         if absent and proposed:
             if self.mode == "decider":
-                proposed, dropped, ms_f = screen_facts(
+                proposed, screened, ms_f = screen_facts(
                     self.continuity, lstate, absent, proposed,
                     fallback=lambda d, text: self.narrator.fallback_ruling(d, text))
                 decider_ms += ms_f
             else:
-                proposed, dropped = self.referee.screen_facts(lstate, absent, proposed)
+                proposed, screened = self.referee.screen_facts(lstate, absent, proposed)
+            dropped = dropped + screened
 
         kept.detail = (f"still breaks {what or 'a rule'} after {rewrites} rewrites; its facts were NOT recorded" if still_bad
                        else (f"rewritten {'once' if rewrites == 1 else 'twice'}" if rewrites

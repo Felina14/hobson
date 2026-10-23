@@ -51,10 +51,14 @@ def checks_for(decisions, met: bool, outcome: dict) -> list[tuple[str, str, bool
 
 
 def short_name(x: str) -> str:
-    """'the player holds a brass key' / 'one brass key' -> 'a brass key'"""
-    x = re.sub(r"^(the player|you)\s+(claims?\s+to\s+)?(holds?|has|knows?|owns?|carries|carry)\s+", "", str(x).strip(), flags=re.I)
-    x = re.sub(r"^(one|a|an|the)\s+", "", x, flags=re.I)
-    return "a " + x.strip().rstrip(".")
+    """'the player holds a brass key' -> 'a brass key'; 'the player knows their uncle' ->
+    'their uncle' (no article in front of a possessive, which produced "a their uncle")."""
+    x = re.sub(r"^(the player|you)\s+(claims?\s+to\s+)?(holds?|has|knows?|owns?|carries|carry)\s+",
+               "", str(x).strip(), flags=re.I)
+    x = re.sub(r"^(one|a|an|the)\s+", "", x, flags=re.I).strip().rstrip(".")
+    if re.match(r"^(their|his|her|its|our|your|my)\b", x, flags=re.I):
+        return x
+    return "a " + x
 
 
 def screen_facts(handler, state, absent, facts, fallback=None):

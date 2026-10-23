@@ -18,7 +18,7 @@ RULES = [
 ]
 
 # Where a scene's banner can come from: the six line drawings in static/scenes, or none.
-ART = ["gate", "market", "inn", "jail", "temple", "road", "none"]
+ART = ["gate", "market", "inn", "jail", "temple", "road", "lighthouse", "none"]
 
 
 @dataclass
