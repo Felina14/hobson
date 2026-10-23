@@ -135,8 +135,11 @@ async def capture(request: Request):
     """Write the exact /start and /turn responses of a session to demo/capture_demo.json, so the
     demo recorder can replay a real game frame for frame without calling a model again."""
     rows = await request.json()
-    out = Path(__file__).resolve().parent.parent / "demo" / "capture_demo.json"
+    demo = Path(__file__).resolve().parent.parent / "demo"
+    out = demo / "capture_demo.json"
     out.write_text(json.dumps(rows, indent=1))
+    # the scene drawings are composed from these, so the recorder can rebuild them exactly
+    (demo / "capture_scenes.json").write_text(json.dumps(_scene_text, indent=1))
     return {"ok": True, "turns": len(rows) - 1, "path": str(out)}
 
 

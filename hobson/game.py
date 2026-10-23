@@ -81,7 +81,14 @@ class Game:
         lstate = state_text(self.world, scene, self.ledger, None, self.alert)   # ends at the ledger
         phase("reading", {})
         claims, holdings = n.extract_claims(action, self.ledger)
-        phase("claims", {"claims": list(claims), "holdings": [str(h) for h in holdings]})
+        # holdings are {"object": ..., "amount": ...}; the page shows the thing, not the dict
+        def _held(h):
+            if isinstance(h, dict):
+                o, a = str(h.get("object", "")).strip(), str(h.get("amount", "")).strip()
+                return f"{a} {o}".strip() if a else o
+            return str(h)
+        phase("claims", {"claims": list(claims),
+                         "holdings": [t for t in (_held(h) for h in holdings) if t]})
         decider_ms = 0.0
 
         # calls A (ledger alone: claims, holdings) and B (with the action: the policy dice)
