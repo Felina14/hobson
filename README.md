@@ -21,8 +21,7 @@ Nothing about the story is written in advance. There is no world file, no scene 
 outcomes. The only hand-written English in the game is five setting-free rules and the typed
 questions in [`hobson/questions.yaml`](hobson/questions.yaml).
 
-> **Demo video** · [2:50, narrated](https://d3qpn17qic87hh.cloudfront.net/hobson/)
-> **Article** · [demo/article.md](demo/article.md)
+> **Demo video** · [2:50, narrated](https://d3qpn17qic87hh.cloudfront.net/hobson/index.html)
 > **Reusable pattern** · [`patterns/ledger_guard.py`](patterns/ledger_guard.py)
 
 Entry for the AWS Builder Center *Agent Experience Hackathon: Strands Decider*. Declared decision
@@ -420,7 +419,7 @@ hobson/
   decider_local.py, nova.py, base.py, mdlog.py   copied from decider-gauntlet
   compare.py      referee comparison report
 patterns/         the ledger guard as a standalone Strands InterventionHandler, + a refund-desk example
-demo/             narration, voice-over, slides, recorder, assembler, the video, article, site/
+demo/             demo_turns.txt: the five scripted turns the referee comparison runs
 results/          rows (*.jsonl) and markdown (md/); legacy/ holds the first build's
 ```
 

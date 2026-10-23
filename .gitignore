@@ -8,3 +8,8 @@ demo/capture_demo.json
 demo/rec/
 results/*.log
 results/demo_run_export.json
+# video, article and site production: kept locally, not part of the repo
+demo/*
+!demo/demo_turns.txt
+meta.json
+results/md/demo_video.md
