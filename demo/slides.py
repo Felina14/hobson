@@ -202,34 +202,6 @@ OPENING_FACTS = [
 ]
 
 
-def what(step):
-    """step 1: what the app is. 2: and the record it keeps."""
-    s = txt(80, 62, "HOBSON", 26, OK, MONO, "bold", ls=3)
-    s += txt(80, 90, "a text adventure that nobody wrote", 17, DIM, SERIF)
-    s += f'<path d="M80 118 H{W-80}" stroke="{LINE}" stroke-width="1.5"/>'
-
-    y = 186
-    for n, head, sub in STEPS:
-        s += f'<circle cx="104" cy="{y-8}" r="17" fill="none" stroke="{OK}" stroke-width="1.5"/>'
-        s += txt(104, y - 1, n, 17, OK, MONO, "bold", anchor="middle")
-        s += txt(144, y, head, 25, INK, SERIF)
-        s += txt(144, y + 28, sub, 18, DIM, SERIF)
-        y += 86
-
-    if step >= 2:
-        bx, by, bw, bh = 80, 470, W - 160, 230
-        s += box(bx, by, bw, bh, stroke=OK, fill=PANEL, r=12, sw=1.6, op=0.95)
-        s += txt(bx + 24, by + 36, "THE RECORD", 13, OK, MONO, "bold", ls=2)
-        s += txt(bx + 150, by + 36, "every fact the story has established", 13, DIM, MONO, ls=1)
-        s += f'<path d="M{bx+24} {by+52} H{bx+bw-24}" stroke="{LINE}" stroke-width="1.2"/>'
-        fy = by + 86
-        for f in OPENING_FACTS:
-            s += f'<path d="M{bx+26} {fy-13} V{fy+6}" stroke="{OK}" stroke-width="2"/>'
-            s += txt(bx + 40, fy, f, 19, INK, SERIF)
-            fy += 34
-        s += txt(bx + 24, by + bh - 24, "The story's only memory. Nothing else counts as true.",
-                 18, DIM, SERIF)
-    return s
 
 
 def pattern():
@@ -259,3 +231,51 @@ def pattern():
     out += txt(80, y + 46, "github.com/Felina14/hobson", 21, BLUE, MONO)
     out += txt(W - 80, y + 46, "#strands-decider-2b   #guardrails", 19, WARN, MONO, anchor="end")
     return out
+
+
+def _field(x, y, w, label, text, col=OK, mono=True, size=21):
+    """An input box the way the app draws one."""
+    out = txt(x, y - 14, label, 12, DIM, MONO, "bold", ls=2)
+    out += box(x, y, w, 58, stroke=col, fill="#0c0d10", r=9, sw=1.6)
+    out += txt(x + 20, y + 37, text, size, INK, MONO if mono else SERIF)
+    return out
+
+
+def _arrow(x, y, h=40, label=None):
+    out = f'<path d="M{x} {y} V{y+h}" stroke="{LINE}" stroke-width="1.6"/>'
+    out += f'<path d="M{x-6} {y+h-9} L{x} {y+h} L{x+6} {y+h-9}" fill="none" stroke="{LINE}" stroke-width="1.6"/>'
+    if label:
+        out += txt(x + 18, y + h / 2 + 5, label, 15, DIM, SERIF)
+    return out
+
+
+def what(step):
+    """1: you type a premise. 2: Nova builds the world and the record. 3: you type what you do."""
+    s = txt(80, 70, "HOBSON", 44, OK, MONO, "bold", ls=4)
+    s += txt(80, 104, "A text adventure that nobody wrote \u2014 not even me.", 22, DIM, SERIF)
+    s += f'<path d="M80 128 H{W-80}" stroke="{LINE}" stroke-width="1.5"/>'
+
+    s += _field(80, 182, 1040, "YOU TYPE WHERE IT BEGINS",
+                "a lighthouse on the Kerala coast during a storm, 1962")
+    s += _arrow(300, 252, 44, "Amazon Nova invents the place and the opening facts")
+
+    if step >= 2:
+        s += box(80, 306, 1040, 196, stroke=LINE, fill=PANEL, r=11, sw=1.4)
+        s += txt(104, 342, "THE RECORD", 12, OK, MONO, "bold", ls=2)
+        s += txt(230, 342, "the story's only memory \u2014 nothing else counts as true", 12, DIM, MONO)
+        s += f'<path d="M104 356 H1096" stroke="{LINE}" stroke-width="1.1"/>'
+        y = 392
+        for f in ("You are the keeper's niece with a lamp and an unread letter.",
+                  "The lighthouse is old, with creaking floors and flickering lights.",
+                  "The storm is battering the windows."):
+            s += f'<path d="M106 {y-14} V{y+6}" stroke="{OK}" stroke-width="2.5"/>'
+            s += txt(126, y, f, 20, INK, SERIF)
+            y += 36
+
+    if step >= 3:
+        s += _arrow(900, 512, 40)
+        s += _field(80, 568, 1040, "THEN YOU TYPE WHAT YOU DO",
+                    "> I set the lamp down and finally open the letter")
+        s += txt(80, 668, "Nova writes what happens next \u2014 and the record grows.",
+                 21, DIM, SERIF)
+    return s
