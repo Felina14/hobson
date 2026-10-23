@@ -87,11 +87,20 @@ def still_segment(png, vo, cap_png, out, min_len=None):
 def clip_segment(start, end, vo, cap_png, out):
     """Cut [start,end] of the recording; freeze the last frame if the VO runs longer."""
     clip_len = end - start
-    length = max(clip_len, dur(vo) + 0.5)
-    pad = max(0.0, length - clip_len)
+    voice = dur(vo) + 0.5
+    # A turn that waited on a model runs longer than the line spoken over it. Rather than hold a
+    # frozen screen, the clip is gently sped up to the narration, never past 1.8x.
+    target = max(voice, clip_len / 1.8)
+    speed = max(1.0, clip_len / target)
+    length = max(voice, clip_len / speed)
+    pad = max(0.0, length - clip_len / speed)
     run(["ffmpeg", "-y", "-ss", f"{start:.3f}", "-to", f"{end:.3f}", "-i", f"{REC}/run.webm", "-i", vo, "-i", cap_png,
-         "-filter_complex", f"[0:v]scale={W}:{H-CAP_H}:force_original_aspect_ratio=decrease:force_divisible_by=2:flags=lanczos,pad={W}:{H}:(ow-iw)/2:0:color={BGHEX},tpad=stop_mode=clone:stop_duration={pad:.3f}[v0];[v0][2:v]overlay=0:{H-CAP_H}[v];[1:a]apad[a]",
-         "-map", "[v]", "-map", "[a]", "-t", f"{length:.3f}", "-r", "24", "-c:v", "libx264", "-crf", "20", "-pix_fmt", "yuv420p", "-c:a", "aac", "-ar", "48000", out])
+         "-filter_complex",
+         f"[0:v]setpts=PTS/{speed:.4f},scale={W}:{H-CAP_H}:force_original_aspect_ratio=decrease:"
+         f"force_divisible_by=2:flags=lanczos,pad={W}:{H}:(ow-iw)/2:0:color={BGHEX},"
+         f"tpad=stop_mode=clone:stop_duration={pad:.3f}[v0];[v0][2:v]overlay=0:{H-CAP_H}[v];[1:a]apad[a]",
+         "-map", "[v]", "-map", "[a]", "-t", f"{length:.3f}", "-r", "24", "-c:v", "libx264", "-crf", "20",
+         "-pix_fmt", "yuv420p", "-c:a", "aac", "-ar", "48000", out])
 
 DESIGNS = {
     "title": lambda s: SL.title(),

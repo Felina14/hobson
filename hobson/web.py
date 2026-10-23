@@ -10,11 +10,12 @@ on POST /finish, or when the server stops.
 """
 from __future__ import annotations
 
+import json
 import threading
 import time
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -124,6 +125,16 @@ def start(body: StartBody):
         return {"scene": _game.scene.name, "opening": opening, "ledger": list(_game.ledger.facts),
                 "image": _scene_image(_game.scene.art, _game.scene), "title": _game.world.title,
                 "premise": _game.world.premise}
+
+
+@app.post("/capture")
+async def capture(request: Request):
+    """Write the exact /start and /turn responses of a session to demo/capture_demo.json, so the
+    demo recorder can replay a real game frame for frame without calling a model again."""
+    rows = await request.json()
+    out = Path(__file__).resolve().parent.parent / "demo" / "capture_demo.json"
+    out.write_text(json.dumps(rows, indent=1))
+    return {"ok": True, "turns": len(rows) - 1, "path": str(out)}
 
 
 @app.post("/finish")
