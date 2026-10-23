@@ -80,3 +80,10 @@
 .hv-strip{height:72px}
 .hv-strip .col .bar{width:22px}
 .hv-verdict .head{font-size:16.5px}
+
+/* what the action leaned on, marked in the player's own words */
+.hv-mark{background:none;color:inherit;padding:0 1px;border-bottom:2px solid;
+  animation:hv-ink .5s ease both}
+.hv-mark.bad{border-color:var(--bad);color:#f3a0a0}
+.hv-mark.ok{border-color:var(--ok);color:#a6dfb2}
+@keyframes hv-ink{from{border-color:transparent;opacity:.55}to{opacity:1}}

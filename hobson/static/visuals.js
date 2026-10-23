@@ -34,6 +34,53 @@
     return s;
   }
 
+
+  // ---------- mark up the player's own sentence ----------
+  // Each claim row names what the action leaned on ("the player holds a brass key"). The words of
+  // that thing are found in the sentence the player typed and underlined there: red where the
+  // record does not hold it, green where it does. Nothing is guessed; if the words are not in the
+  // sentence, nothing is marked.
+  const STOP = new Set(['the','a','an','player','holds','hold','has','have','knows','know','their',
+    'his','her','its','your','my','our','of','to','by','in','on','at','is','was','were','and','or',
+    'that','this','there','claims','claim','given','gave','location','one','some','any']);
+
+  function markSentence(elp, claims, record) {
+    // a word the record already holds ("lamp") can sit inside a refused claim ("a locked cabinet
+    // by the lamp"); it is real, so it is never marked as missing
+    const held = new Set((record || []).join(' ').toLowerCase().match(/[a-z][a-z'-]*/g) || []);
+    if (!elp || elp.dataset.marked) return;
+    const text = elp.textContent.replace(/^>\s*/, '');
+    const spans = [];
+    claims.forEach(r => {
+      const bad = /^No\b/.test(r.answer);
+      const words = String(r.note || '').toLowerCase().match(/[a-z][a-z'-]*/g) || [];
+      const want = words.filter(w => !STOP.has(w) && w.length > 2 && !(bad && held.has(w)));
+      want.forEach(w => {
+        const m = new RegExp('\\b' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\w*', 'i').exec(text);
+        if (m) spans.push({ from: m.index, to: m.index + m[0].length, bad });
+      });
+    });
+    if (!spans.length) return;
+    // merge touching or overlapping spans so "brass key" underlines once, not twice
+    spans.sort((a, b) => a.from - b.from);
+    const merged = [];
+    spans.forEach(sp => {
+      const last = merged[merged.length - 1];
+      if (last && sp.from <= last.to + 1 && sp.bad === last.bad) last.to = Math.max(last.to, sp.to);
+      else merged.push({ ...sp });
+    });
+    let out = '', at = 0;
+    const esc = t => t.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    merged.forEach(sp => {
+      out += esc(text.slice(at, sp.from));
+      out += `<mark class="hv-mark ${sp.bad ? 'bad' : 'ok'}">${esc(text.slice(sp.from, sp.to))}</mark>`;
+      at = sp.to;
+    });
+    out += esc(text.slice(at));
+    elp.innerHTML = out;
+    elp.dataset.marked = '1';
+  }
+
   // ---------- per turn ----------
   function render(t) {
     const claims = t.rows.filter(r => r.key === 'ledger' || r.key === 'grounding');
@@ -78,6 +125,7 @@
 
     // the same verdict, inline in the story, so the transcript itself carries the evidence
     const you = [...document.querySelectorAll('#story p.you')].pop();
+    markSentence(you, claims, t.ledger);
     if (you) {
       const chip = el('div', 'hv-chip ' + (blocked ? 'bad' : 'ok'));
       chip.appendChild(el('span', 'dot', blocked ? '✕' : '✓'));
