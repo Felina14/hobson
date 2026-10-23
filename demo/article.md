@@ -38,6 +38,9 @@ It's **Strands Decider 2B**, running locally on my laptop, and it cannot write a
 
 It cannot be talked into anything, because it cannot talk.
 
+![An honest turn. Both claims are in the record, so both pass — and four new facts are written.](images/1_honest_turn.png)
+*An honest turn. Both claims are in the record, so both pass — and four new facts are written.*
+
 ---
 
 ## How it knows there is no key
@@ -52,6 +55,9 @@ the player knows their uncle
 the player has a locked cabinet by the lamp
 ```
 
+![The same screen, bluffing. Note that “by the lamp” stays green — the lamp really is in the record.](images/2_bluff_refused.png)
+*The same screen, bluffing. Note that “by the lamp” stays green — the lamp really is in the record.*
+
 Each of those goes to Decider as a yes-or-no question. And here's the detail that did more for accuracy than anything else I built: **the question is asked against a state that stops at the record, with my sentence deleted.**
 
 Decider never sees the claim and the assertion side by side. It sees four established facts and a question. Four facts:
@@ -64,6 +70,10 @@ The letter warns of a danger it does not name.
 ```
 
 Not one of them mentions a key. So the answer comes back **no, at 80%**, decided on my Mac in about a tenth of a second with no API call at all.
+
+
+![The claim goes to the record on its own. Four facts, no key, no at 80%.](images/3_how_it_knows.png)
+*The claim goes to the record on its own. Four facts, no key, no at 80%.*
 
 That sounds obvious written down. It isn't. When I first built this I passed the whole state — the record *and* the player's action — and the rulings drifted toward yes, because a sentence sitting next to a claim argues for it. Removing eleven words from the prompt was worth more than any amount of prompt engineering.
 
@@ -103,6 +113,9 @@ And your own sentence gets marked up:
 > `> I use the` **brass key** `my` **uncle** `gave me to open the` **locked cabinet** `by the lamp`
 
 Three underlines in red. **And "by the lamp" stays green** — because the lamp really is in the record, even though it appears inside a refused claim about a cabinet by the lamp. It isn't highlighting the claim. It's highlighting precisely the part of it that's missing.
+
+![Mid-turn. Each claim flips as Decider rules it; nothing is announced before it is true.](images/4_watching_it_think.png)
+*Mid-turn. Each claim flips as Decider rules it; nothing is announced before it is true.*
 
 Every scene gets a drawing too, composed in code from the scene's own words — a motif picked from eleven, with sea, rain or stars added from the same text and a hash of it seeding the layout. Deterministic, offline, free, and the same place always looks the same. A generated world can't have hand-drawn art waiting for it, and I'd rather draw than pay a vendor per scene.
 
@@ -155,6 +168,9 @@ Every number so far came from one premise, which is a fair thing to be suspiciou
 That second one is the one I'd point at. The lie wasn't a thing anyone could ask me to produce — it was a claim about *who had authorised what*. The record check doesn't care about the difference. A claim is a claim.
 
 I also tried it live on a hospital night shift in Chennai: *"I open the drug cabinet with the key the senior gave me."* **key** and **senior** both came back missing, in a world that had existed for about forty seconds.
+
+![Eight scenarios the code has never seen, each drawn from its own scene text. No image model, no cost.](images/6_any_scenario.png)
+*Eight scenarios the code has never seen, each drawn from its own scene text. No image model, no cost.*
 
 ---
 
@@ -221,6 +237,9 @@ It also renders only the record into its state, never the user's message. Same r
 Nova called `issue_refund` immediately. No lookup. Its stated reasoning: *"The user has provided the order ID and the amount, so I can proceed."*
 
 The guard refused it in **233 ms** — *"order A-4471 was returned by the customer"*, not established, **0.78**. Only then did Nova go and look, find no return, and ask the customer for a receipt or tracking number. On an order that genuinely had been returned, the refund went through in 268 ms.
+
+![The guard on an agent that is not a game. Nova was about to pay out on a return that never happened.](images/5_refund_desk.png)
+*The guard on an agent that is not a game. Nova was about to pay out on a return that never happened.*
 
 And then the finding I'd have missed if I'd run it once.
 
